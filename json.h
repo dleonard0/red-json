@@ -281,7 +281,7 @@ const __JSON_OBJECTI char *json_default_select_object(const __JSON_OBJECTI char 
  *
  * @param json  (optional) JSON text
  * @return Initial iterator value for use with #json_array_next(); or
- *         NULL if @a json is not an array.
+ *         NULL if @a json is not an array (#errno is set to #EINVAL).
  */
 const __JSON_ARRAYI char *json_as_array(const __JSON char *json);
 
@@ -393,7 +393,7 @@ size_t json_span(const __JSON char *json);
  * </ul>
  * @param json pointer to JSON text
  * @returns the converted numeric value (#errno is unchanged); or
- *          NaN if the value was malformed (sets #errno to #EINVAL), or
+ *          #NAN if the value was malformed (sets #errno to #EINVAL), or
  *          #HUGE_VAL or -#HUGE_VAL if the value is too big (#ERANGE), or
  *          0 if the value would underflow (#ERANGE).
  */
@@ -441,20 +441,29 @@ int json_as_int(const __JSON char *json);
 /**
  * Converts JSON text to a boolean value.
  *
- * Most JSON values are converted to 1 (true).
- * The few values that convert to 0 are:
+ * Converts <code>true</code> and <code>false</code> to C values 1 and 0.
+ *
+ * Non-boolean input causes #errno to be set to #EINVAL,
+ * and the return result approximated Javascript's "falsey" values.
+ * Most non-boolean input is converted to 1 (true), but the following
+ * values convert to 0:
  * <code>false</code>,
  * <code>null</code>,
  * <code>""</code>,
- * <code>[]</code>,
- * <code>{}</code>,
- * <code>0</code>, <code>NaN</code> and
- * empty values.
+ * <code>0</code>,
+ * <code>undefined</code>,
+ * <code>NaN</code>,
+ * and empty or @c NULL input.
  *
- * Note that JSON string <code>"0"</code> converts to true.
+ * Note that non-empty JSON strings convert to true (#EINVAL), including
+ * <code>"false"</code> and <code>"0"</code>.
  *
  * @param json  (optional) JSON text
- * @return 0 for a falsy values, otherwise 1
+ * @return 0 for <code>false</code>; or
+ *         1 for <code>true</code>; or
+ *         0 and sets #errno to #EINVAL when @a json is @c NULL; or
+ *         0 and sets #errno to #EINVAL when @a json is a "falsey" value; or
+ *         1 and sets #errno to #EINVAL for other values
  */
 int json_as_bool(const __JSON char *json);
 

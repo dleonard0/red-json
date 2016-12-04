@@ -18,6 +18,7 @@ libjson_a_SOURCES += libjson/word.c
 
 check_PROGRAMS =
 check_PROGRAMS += libjson/t-array
+check_PROGRAMS += libjson/t-bool
 check_PROGRAMS += libjson/t-null
 check_PROGRAMS += libjson/t-number
 check_PROGRAMS += libjson/t-object
@@ -27,6 +28,7 @@ check_PROGRAMS += libjson/t-str
 check_PROGRAMS += libjson/t-strcmp
 check_PROGRAMS += libjson/t-type
 libjson_t_array_LDADD	= libjson.a
+libjson_t_bool_LDADD	= libjson.a
 libjson_t_null_LDADD	= libjson.a
 libjson_t_number_LDADD	= libjson.a
 libjson_t_object_LDADD	= libjson.a
