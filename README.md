@@ -7,20 +7,19 @@ A just-in-time, helpful JSON parser for C.
 * Seek or iterate a `char *` pointer over nested JSON objects and arrays
   without converting. Fast.
 * Call converter functions to get a safe or "best-effort" C value.
-  If you choose to ignore errors, the value returned is sensible.
-* All converter functions are `NULL`-tolerant.
-* String functions usually take an output buffer, but allocating (malloc)
-* variants are provided.
+  If you choose to ignore errors, the returned value is sensible.
+* All functions are `NULL`-tolerant.
 
-## Usage examples
+## Examples
 
+Let's convert some numbers
 
 ```c
     double x = json_as_double("1.24e8");
     double n = json_as_double(NULL); /* NAN, errno==EINVAL */
 ```
 
-Iterate over an array, and copy out the elements as "spans":
+Iterate over an array
 
 ```c
     const char *iter;
@@ -28,14 +27,17 @@ Iterate over an array, and copy out the elements as "spans":
 
     iter = json_as_array("[1, 2, null, []]");
     while ((elem = json_array_next(&iter)))
-        printf("%d (%.*s)\n", json_as_int(elem), json_span(elem), elem);
+        printf("%d\n", json_as_int(elem));    /* could check for 0/EINVAL */
 ```
 
-Element selectors:
+Search within a structure
 
 ```c
-    extern const char *input;   /* see the JSON below */
-    const char *cook = json_select(input, "hotel[1].cook");
+    extern const char *input;   /* See the hotel JSON below */
+    const char *cook;
+    
+    cook = json_select(input, "hotel[1].cook");
+
     printf("The cook's age is %d\n", json_select_int(cook, "age"));
     for (int i = 0; i < 5; i++)
         printf("score #%d is %d\n", json_select_int(cook, "scores[%d]", i));
@@ -49,34 +51,39 @@ Element selectors:
                 "cook": {
                     "name": "Mr LeChe\ufb00",
                     "age": 91,
-                    "cuisine": "Fish and chips"
+                    "cuisine": "Fish and chips",
+                    "scores": [ 4, 5, 1, 9, 0 ]
                 },
-                "scores": [ 4, 5, 1, 9, 0 ]
             }
         ]
    }
 ```
 
-Safe string buffers:
+Safe strings:
 
 ```c
     char buf[1024]; /* UTF-8, NUL-termination guaranteed */
+
     if (json_as_str(json_select(cook, "name"), buf, sizeof buf))
         printf("The cook's name is %s\n", buf);
 
     char *cuisine = json_select_strdup(cook, "cuisine");
-    if (cuisine)
+    if (cuisine) {
         printf("Enjoy your %s\n", cuisine);
-    free(cuisine);
+        free(cuisine);
+    }
 
     if (!json_as_str("\"\\u0000 \\udc00\"", buf, sizeof buf))
         perror("That UTF-8 is unsafe");
-    json_as_unsafe_str("\"\\u0000 \\udc00\"", buf, sizeof buf); /* Hmm. */
 
+    json_as_unsafe_str("\"\\u0000 \\udc00\"", buf, sizeof buf);
+    /* Now buf contains nonstandard UTF-8. */
+
+    /* Best way to carry binary data */
     int buflen = json_as_base64("\"SQNDUDQzNw==\"", buf, sizeof buf);
 ```
 
-## API usage
+## General usage
 
 The input JSON text should be held NUL-terminated in memory.
 
@@ -86,26 +93,43 @@ For example, a pointer to the '`[`' in JSON text `[10,2,3]` represents
 the whole array, while a pointer to the '`1`' represents just the
 number 10.
 
-All parser functions take a JSON pointer.
-From there they will skip any leading whitespace, then convert
-the first complete JSON value that they encounter.
-Any data following the value is ignored.
+Converter functions skip leading whitespace, then converts
+the next complete JSON value that they encounter.
+Any following data is ignored.
 
-`NULL` pointers are safe to use for JSON input and are
-treated equivalent to an empty input.
-So to is malformed JSON, such as `:`.
+`NULL` is treated the same as empty or malformed input.
 
 ### Converters
 
-Conversions from JSON to C values are best effort and unsuprising.
-For conversions where no unsurprising method is possible, a 'zero'
-return is provided.
-An exception to the zero rule is `json_as_bool()` which effectively measures
-the 'falsiness' of a value, and `json_as_double()` which returns `NaN`
-to represent a failed conversion.
-Converters always set `errno` in the case of inexact conversions.
-You can choose to ignore `errno` if these inexact conversion rules
-seem sensible to you.
+Converters translate from JSON to C values in a "best effort" or
+unsuprising way.
+Where no clear conversion is possible, a best-effort return value
+is accompanied with `EINVAL` stored in `errno`.
+
+| When converter | Returns | And sets<br>`errno` to | It means |
+|-----------|-------------|----------|---------|
+|`json_as_array()`|`NULL`|`EINVAL`|not an array `[...]`|
+|`json_as_object()`|`NULL`|`EINVAL`|not an object `{...}`|
+|`json_as_double()`|`NAN`|`EINVAL`|not a number|
+|`json_as_double()`|&plusmn;`HUGE_VAL`|`ERANGE`|overflow|
+|`json_as_double()`|0|`ERANGE`|underflow|
+|`json_as_long()`|0|`EINVAL`|not a number|
+|`json_as_long()`|`LONG_MIN`|`ERANGE`|negative overflow|
+|`json_as_long()`|`LONG_MAX`|`ERANGE`|positive overflow|
+|`json_as_int()`|0|`EINVAL`|not a number|
+|`json_as_int()`|`INT_MIN`|`ERANGE`|negative overflow|
+|`json_as_int()`|`INT_MAX`|`ERANGE`|positive overflow|
+|`json_as_bool()`|1|`EINVAL`|not a boolean|
+|`json_as_bool()`|0|`EINVAL`|not a boolean, but looks falsey|
+|`json_as_str()`|0|`EINVAL`|not a valid string (or word)|
+|`json_as_str()`|0|`ENOMEM`|output buffer is too small|
+|`json_as_strdup()`|`NULL`|`EINVAL`|not a valid string (or word)|
+|`json_as_strdup()`|`NULL`|`ENOMEM`|`malloc()` failed|
+|`json_as_base64()`|-1|`ENOMEM`|output buffer is too small
+|`json_type()`|`JSON_BAD`| |malformed JSON|
+|`json_span()`|0| |malformed JSON|
+
+All converters detect `NULL` input as malformed input.
 
 The converter functions treat input JSON values according to this table:
 
@@ -124,8 +148,15 @@ If a converted value would exceed a C type limit, the value will be clamped
 (e.g. to `HUGE_VAL` or `INT_MAX`) and `errno` will be set to `ERANGE` or
 `ENOMEM` depending on the function.
 
-All converters are safe to call with `NULL` pointers or with malformed input.
+## String conversion and safety
 
+*Safe UTF-8 strings* contain only shortest-length
+encodings of the set of unicode codepoints excluding
+{U+0, U+D800&hellip;U+DFFF, U+110000&hellip;}.
+
+The functions `json_as_str()` and `json_as_strdup()` will refuse to
+generate unsafe UTF-8 C strings.
+Use `json_as_unsafe_str()` `json_as_unsafe_strdup()` instead.
 
 ## API summary
 
