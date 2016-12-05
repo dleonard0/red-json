@@ -48,7 +48,7 @@ can_skip_delim(const __JSON char **json_ptr, char ch)
  * @param json_ptr  pointer to (optional) JSON text
  * @return 0 iff no skipping occurred.
  */
-int
+static int
 skip_word_or_string(const __JSON char **json_ptr)
 {
 	const __JSON char *json;

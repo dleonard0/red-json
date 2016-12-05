@@ -52,6 +52,7 @@ four_xdigits(const __JSON char **json_ptr, unicode_t *u_return)
  * @param json_ptr  pointer-to-pointer to UTF-8, always advanced
  * @return codepoint (never an error)
  */
+static
 __SANITIZED unicode_t
 get_escaped_sanitized(const __JSON char **json_ptr)
 {
@@ -138,7 +139,7 @@ put_uescape(unicode_t u, void *buf, size_t bufsz)
  * @param bufsz sizeof of the output buffer
  * @return number of bytes written to buf if it were big enough
  */
-int
+static int
 put_sanitized_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
 {
 	char *out = buf;
@@ -179,7 +180,7 @@ put_sanitized_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
  *         been had there been enough room; or
  *         0 if the #SAFE flag was set and bad UTF-8 was present (#EINVAL)
  */
-size_t
+static size_t
 as_str(const __JSON char *json, void *buf, size_t bufsz, int flags)
 {
 	char *out = buf;
@@ -243,7 +244,7 @@ fail:
  *         NULL #ENOMEM if storage could not be allocated; or
  *         pointer to a NUL-terminated UTF-8 string
  */
-char *
+static char *
 as_str_alloc(const __JSON char *json, int flags)
 {
 	size_t sz = as_str(json, NULL, 0, flags);
@@ -281,7 +282,7 @@ json_as_strdup(const __JSON char *json)
 	return as_str_alloc(json, SAFE);
 }
 
-int
+static int
 string_cmp(const __JSON char *json, const char *str, const char *str_end)
 {
 	char quote;

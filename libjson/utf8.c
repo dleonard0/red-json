@@ -13,7 +13,7 @@
  * @return the number of bytes consumed to store value in @a u_return, or
  *         0 on decoding error (invalid UTF-8 encoding)
  */
-size_t
+static size_t
 get_utf8_raw(const char *p, unicode_t *u_return)
 {
 	if ((p[0] & 0x80) == 0x00) {
