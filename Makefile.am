@@ -27,6 +27,7 @@ check_PROGRAMS += libjson/t-span
 check_PROGRAMS += libjson/t-str
 check_PROGRAMS += libjson/t-strcmp
 check_PROGRAMS += libjson/t-type
+check_PROGRAMS += libjson/t-word
 libjson_t_array_LDADD	= libjson.a
 libjson_t_bool_LDADD	= libjson.a
 libjson_t_null_LDADD	= libjson.a
@@ -37,6 +38,7 @@ libjson_t_span_LDADD	= libjson.a
 libjson_t_str_LDADD	= libjson.a
 libjson_t_strcmp_LDADD	= libjson.a
 libjson_t_type_LDADD	= libjson.a
+libjson_t_word_LDADD	= libjson.a
 
 TESTS = $(check_PROGRAMS)
 

@@ -33,7 +33,7 @@ word_strcmpn(const __JSON char *json, const char *str, size_t strsz)
 	if (strsz)
 		do {
 			if (*json != *str)
-				return *str < *json ? -1 : 1;
+				return *json < *str ? -1 : 1;
 			strsz--;
 			str++;
 			json++;
@@ -55,7 +55,7 @@ word_strcmp(const __JSON char *json, const char *str)
 
 	do {
 		if (*json != *str)
-			return *str < *json ? -1 : 1;
+			return *json < *str ? -1 : 1;
 		str++;
 		json++;
 	} while (is_word_char(*json) && *str);
