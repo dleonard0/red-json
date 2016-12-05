@@ -22,17 +22,17 @@ json_as_double(const char *json)
 	skip_white(&json);
 	if (*json != '-' && *json != '.' && !is_digit(*json)) {
 		/* Not likely a number */
-		if (word_strcmpn(json, json_true, 4) == 0) {
+		if (word_strcmp(json, json_true) == 0) {
 			errno = EINVAL;
 			return 1;
 		}
-		if (word_strcmpn(json, json_false, 5) == 0) {
+		if (word_strcmp(json, json_false) == 0) {
 			errno = EINVAL;
 			return 0;
 		}
 		if (*json == '['
 		 || *json == '{'
-		 || word_strcmpn(json, json_null, 4) == 0)
+		 || word_strcmp(json, json_null) == 0)
 		{
 			errno = EINVAL;
 			return NAN;

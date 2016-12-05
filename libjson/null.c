@@ -11,6 +11,6 @@ json_is_null(const char *json)
 		return 0;
 
 	skip_white(&json);
-	return word_strcmpn(json, json_null, 4) == 0;
+	return word_strcmp(json, json_null) == 0;
 }
 
