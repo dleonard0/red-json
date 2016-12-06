@@ -33,6 +33,20 @@ fputs_esc(const char *s, FILE *f)
 	}
 }
 
+/* Puts a byte array */
+inline void
+fputary(const char *a, size_t n, FILE *f)
+{
+	if (!a)
+		fputs(cRED "NULL" cNORMAL, f);
+	else {
+		fputc('"', f);
+		while (n--)
+			fputc_esc(*a++, f);
+		fputc('"', f);
+	}
+}
+
 #define _assert_params \
 	const char *file, int line, const char *a_arg, const char *b_arg
 #define _assert_args(a_arg, b_arg) \
@@ -51,6 +65,23 @@ _assert_streq(_assert_params, const char *a, const char *b)
 	    fprintf(stderr, "\n\t%s => ", b_arg);
 	    fputs_esc(b, stderr);
 	    fprintf(stderr, "\n");
+	    abort();
+	}
+}
+
+/* A macro to assert two byte arrays are not NULL and have equal content */
+#define assert_memeq(a,b,n) _assert_memeq(_assert_args(#a, #b), #n, a, b, n)
+inline void
+_assert_memeq(_assert_params, const char *n_arg, const char *a, const char *b, size_t n)
+{
+	if (!a || !b || memcmp(a, b, n) != 0) {
+	    fprintf(stderr,
+	       "%s: %d: assertion failure assert_streq(%s, %s, %s)\n"
+	       "\t%s => ", file, line, a_arg, b_arg, n_arg, a_arg);
+	    fputary(a, n, stderr);
+	    fprintf(stderr, "\n\t%s => ", b_arg);
+	    fputary(b, n, stderr);
+	    fprintf(stderr, "\n\t%s => %zu\n", n_arg, n);
 	    abort();
 	}
 }
