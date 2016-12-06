@@ -592,12 +592,13 @@ char *json_as_unsafe_strdup(const __JSON char *json);
  * This function is intended for recovering binary data from JSON strings.
  * Whitespace is permitted (and ignored) within the BASE-64 string.
  *
+ * @see RFC 3548
+ *
  * @param json  (optional) JSON text
  * @param buf   (optional) storage for the returned binary data
- *              the minimum buffer size required.
  * @param bufsz the size of @a buf
  * @return the number of bytes stored in @a buf on success, or
- *         when @a bufsz is zero, the buffer size required to hold the data; or
+ *         the minimum buffer size required when @a bufsz is zero; or
  *         -1 #ENOMEM if the buffer size is too small; or
  *         -1 #EINVAL if the JSON text is not a valid BASE-64 JSON string.
  */
@@ -610,14 +611,16 @@ int json_as_base64(const __JSON char *json, void *buf, size_t bufsz);
  * If the buffer is too small, it will be truncated with NUL and
  * the function will return 0 setting #errno to #ENOMEM.
  *
+ * @see RFC 3548
+ *
  * @param src   source bytes
  * @param srcsz length of source
  * @param dst   output buffer for JSON string. This will be NUL-terminated.
  * @param dstsz maximum size of the output buffer
  * @return the number of non-NUL bytes that were stored in @a dst, or
- *         0 and sets #errno to #ENOMEM if @a dstsz is too small.
+ *         -1 and sets #errno to #ENOMEM if @a dstsz is too small.
  */
-size_t json_base64_from_bytes(const void *src, size_t srcsz,
+int json_base64_from_bytes(const void *src, size_t srcsz,
 			      __JSON char *dst, size_t dstsz);
 
 /** Calculate the dstsz required for #json_base64_from_bytes() */

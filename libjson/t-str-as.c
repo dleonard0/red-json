@@ -6,6 +6,16 @@
 #include "json.h"
 #include "t-assert.h"
 
+/** @file
+*
+ * Tests for:
+ *
+ *    #json_as_str()
+ *    #json_as_strdup()
+ *    #json_as_unsafe_str()
+ *    #json_as_unsafe_strdup()
+ */
+
 static char buf[1024]; /* shared across tests */
 
 /** Asserts that function @a FN treats @a bad_json as invalid input */
