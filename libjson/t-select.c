@@ -38,6 +38,10 @@ main()
 	assert(json_select(cook, empty) == cook);
 
 	assert_errno(!json_select(cook, "height"), ENOENT);
+	assert_errno(!json_select(input_A, "hotel.noexist[1].cook"),
+							ENOENT);
+	assert_errno(!json_select(input_A, "hotel[1][0].cook"),
+							ENOENT);
 	assert_errno(!json_select(input_A, "hotel[0].cook"),
 							ENOENT);
 	assert_errno(!json_select(input_A, "hotel[1].cook.height"),
@@ -60,6 +64,16 @@ main()
 	assert(json_select(scores, "[%d]", 4));
 	assert_errno(!json_select(scores, "[%d]", -4), ENOENT);/*not EINVAL!*/
 
+	/* Invalid paths */
+	assert_errno(!json_select(input_A, "%"), EINVAL);
+	assert_errno(!json_select(input_A, "a%s", ""), EINVAL);
+	assert_errno(!json_select(input_A, "[%s]", ""), EINVAL);
+	assert_errno(!json_select(input_A, "[a]"), EINVAL);
+	assert_errno(!json_select(input_A, "[]"), EINVAL);
+
+	/* Invalid source appears as ENOENT */
+	assert_errno(!json_select(",", "x"), ENOENT);
+	assert_errno(!json_select(",", "[0]"), ENOENT);
 
 	return 0;
 }

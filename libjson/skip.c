@@ -89,7 +89,7 @@ skip_word_or_string(const __JSON char **json_ptr)
  *
  * @param json_ptr  pointer to (optional) JSON text (not whitespace!)
  * @returns 0 if nothing was skipped,
- *          1 if a value was skipped, or
+ *          1 if a value was skipped (#EINVAL), or
  *          0 if a depth limit was reached (#ENOMEM)
  */
 int
@@ -107,8 +107,10 @@ skip_value(const __JSON char **json_ptr)
 	size_t const max_offset = sizeof nest / sizeof nest[0];
 	const __JSON char *json = *json_ptr;
 
-	if (!json)
+	if (!json) {
+		errno = EINVAL;
 		return 0;
+	}
 	while (*json) {
 		assert(!strchr(WHITESPACE, *json));
 		/* Handle popping the nest stack */
@@ -176,8 +178,10 @@ skip_value(const __JSON char **json_ptr)
 	}
 	/* EOS */
 done:
-	if (json == *json_ptr)
+	if (json == *json_ptr) {
+		errno = EINVAL;
 		return 0;
+	}
 	*json_ptr = json;
 	return 1;
 }
