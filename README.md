@@ -40,7 +40,7 @@ Search within a structure
 
     printf("The cook's age is %d\n", json_select_int(cook, "age"));
     for (int i = 0; i < 5; i++)
-        printf("score #%d is %d\n", json_select_int(cook, "scores[%d]", i));
+        printf("score #%d: %d\n", i, json_select_int(cook, "scores[%d]", i));
 ```
 
 ```json
@@ -62,8 +62,9 @@ Search within a structure
 Safe strings:
 
 ```c
-    char buf[1024]; /* UTF-8, NUL-termination guaranteed */
+    char buf[1024];
 
+    /* buf will always be NUL-terminated, even on error */
     if (json_as_str(json_select(cook, "name"), buf, sizeof buf))
         printf("The cook's name is %s\n", buf);
 
@@ -73,13 +74,13 @@ Safe strings:
         free(cuisine);
     }
 
+    /* Suspicious strings just become ""/EINVAL */
     if (!json_as_str("\"\\u0000 \\udc00\"", buf, sizeof buf))
         perror("That UTF-8 is unsafe");
 
+    /* But you can bypass that. */
     json_as_unsafe_str("\"\\u0000 \\udc00\"", buf, sizeof buf);
-    /* Now buf contains nonstandard UTF-8. */
 
-    /* Best way to carry binary data */
     int buflen = json_as_base64("\"SQNDUDQzNw==\"", buf, sizeof buf);
 ```
 
