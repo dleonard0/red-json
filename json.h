@@ -1,180 +1,139 @@
-#ifndef JSON_H
-#define JSON_H
+#ifndef RED_JSON_H
+#define RED_JSON_H
 
 /** @file
+ *
  * Red JSON parser.
  *
- * This is a lightweight, just-in-time parser for JSON. Instead of
- * converting all JSON into in-memory data structures, this parser assumes
- * you keep the source UTF-8 input ("JSON text") in memory. Then it gives
- * you the tools to seek around within the input and convert the JSON values
- * to C as you need them.
+ * <h3>High-level design</h3>
  *
- * The parser implements all of JSON RFC 7159 with some extensions, such as
- * accepting trailing commas and unquoted key strings.
+ * This is a lightweight, just-in-time parser for JSON RFC 7159.
+ * Instead of converting all the JSON input into in-memory data structure,
+ * you keep the source input as-is, and use the functions below to to seek
+ * around and convert the JSON values to C as you need them.
  *
- * To generate JSON output, functions are provided to quote and escape UTF-8
- * C strings and generate BASE-64 strings from byte arrays. For generating
- * other types (number, boolean) you should use #printf() and friends.
+ * JSON input text is always NUL-terminated UTF-8, or NULL.
+ * NULL is always safe and treated as if it were an empty JSON input.
  *
- * <h3>Input converter functions</h3>
- *
- * The most important functions are the input converters. These
- * convert JSON values into C values.
- *
- *    int    #json_as_bool(const char *)
- *    int    #json_as_int(const char *)
- *    long   #json_as_long(const char *)
- *    double #json_as_double(const char *)
- *    size_t #json_as_str(const char *, void *, size_t)
- *    size_t #json_as_bytes(const char *, void *, size_t)
- *    int    #json_is_null(const char *)
- *
- * Converters always take a pointer into NUL-terminated JSON text.
- * After skipping any whitespace, the converters then process only the
- * first complete JSON value they encounter.
- * JSON following the value is ignored. This way any pointer into the JSON
- * text represents only the value at that position, be it a simple
- * <code>null</code> or a deeply-nested object.
- *
- * The #json_type() function indicates the type of JSON value at the pointer.
- * It is as reliable as the JSON input is well-formed. This check is
- * usually unnecessary if you are comfortable with the input converters
- * performing a 'best effort' conversions from JSON to C.
- *
- * Conversions are best effort and "unsuprising". For inter-type conversions
- * where no unsurprising method is available, a 'zero' return is provided.
- * An exception to the zero rule is #json_as_bool() which effectively measures
- * the 'falsiness' of a value, and #json_as_double() which returns NaN (not 0)
- * to represent a failed conversion. Converters always set #errno in the case
- * of inexact conversions. You can choose to ignore that if you wish.
- *
- * The converter functions treat input JSON values according to this table:
- * <pre>
- *   Input                     json_as_...
- *            :  bool    int    double string  array object null
- *   -------- -  ------- ------ ------ ------  ----- ------ ----
- *   false    :  0       0      NaN    "false" []    {}     no
- *   true     :  1       1      NaN    "true"  []    {}     no
- *   <number> :  !=0|NaN strtod strtod strcpy  []    {}     no
- *   <string> :  !=""    strtod strtod utf8    []    {}     no
- *   <array>  :  !=[]    0      NaN    strcpy  =     {}     no
- *   <object> :  !={}    0      NaN    strcpy  []    =      no
- *   null     :  0       0      NaN    "null"  []    {}     yes
- *   <empty>  :  0       0      NaN    ""      []    {}     no
- * </pre>
- *
- * If a converted value would exceed a C type limit, the value will be clamped
- * (e.g. to #HUGE_VAL or #INT_MAX) and #errno will be set to #ERANGE or
- * #ENOMEM depending on the function.
- *
- * All converters are safe to call with @c NULL pointers or with
- * malformed input.
- * @c NULL is always treated as if it were empty text.
- * Malformed JSON text is usually recognised as a "word" (unquoted string)
- * up until the next JSON delimiter or whitespace.
+ * Interior values within structured values are represented by pointers
+ * into the JSON text where their encoding begins. This is true for both
+ * simple and structured sub-values.
  *
  *
- * <h3>String conversions</h3>
+ * <h3>Simple type conversion</h3>
  *
- * Standard JSON strings are surrounded by double quotes (").
- * This parser also accepts strings quoted with single quotes (')
- * and unquoted "word" sequences.
+ * Converting any JSON value into a simple C type returns a "best-effort"
+ * result, and #errno will indicate any conversion difficulty. For example,
+ * converting JSON number <code>1e100</code> to @c int will clamp the value
+ * to #INT_MAX and indicate #ERANGE.
  *
- * "Words" are UTF-8 input sequences terminated by either
- * whitespace, a NUL byte or a JSON delimiting character (<code>[]{},:"</code>).
- * For example, <code>hello</code>, <code>1.0e8</code>, <code>null</code>,
- * <code>true-blue</code> and <code>don't</code> are words.
- * Depending on the converter, words are interpreted in different ways.
- * For example, the JSON text <code>true</code> will be recognized
- * by #json_as_str() as an unquoted string.
+ * If you need to know the type of a JSON value before converting, there is
+ * a fast type classifier #json_type() that guesses without fully checking
+ * whether the input is well-formed. Even when the input isn't well-formed,
+ * the converter functions will still try to return something useful and
+ * indicate #EINVAL.
+ *
+ *    #json_as_int()
+ *    #json_as_long()
+ *    #json_as_double()
+ *    #json_as_bool()
+ *    #json_is_null()
+ *    #json_type()
  *
  *
- * <h3>UTF-8, NUL bytes and C strings</h3>
+ * <h3>Strings</h3>
  *
- * A goal of this parser is to provide both safe and lossless (but not at
- * the same time!) inter-conversion between JSON input strings and
- * NUL-terminated C strings.
+ * Normally, a string conversion error (#EINVAL) occurs when
+ * <ul><li>the input JSON contains invalid or overlong UTF-8 sequences, or
+ *     <li>the output UTF-8 C string would contain NUL or a
+ *         code point not permitted by RFC 3629.
+ * </ul>
  *
- * NUL bytes cannot occur within JSON text; they indicate end-of-input.
- * Invalid UTF-8 sequences (eg 80) are mapped byte-for-byte into the
- * code point range U+DC00..U+DCFF. This includes overlong input encodings
- * (eg C0 80) and otherwise valid encodings of surrogates U+D800..U+DFFF.
+ * However, "unsafe" variants of the string conversion functions are provided
+ * that instead translate problematic input bytes into U+DC00..U+DCFF.
+ * Converting these code points back to JSON will losslessly preserve the
+ * original bytes.
+ * If you need to pass binary data with JSON, you may prefer to use the
+ * BASE64 functions.
  *
- * A second level of unicode translation happens with escape sequences.
- * Escape sequences that would generate invalid UTF-8 (i.e \uD800..\uDFFF
- * and \u0000) will have their first backslash character treated as an
- * invalid byte (U+DC5C).
+ * Most string conversions requires you to supply the output buffer.
+ * If you supply a zero-sized buffer, the conversion functions will return
+ * the minimum size of buffer to use for that input.
+ * Functions ending with "_strdup" will do that step for you and
+ * return heap storage filled with the translated string.
  *
- * Twelve-byte surrogate escapes from JSON are accepted, and converted
- * immediately to code points.
+ * If all you want to do is compare a JSON string with a UTF-8 C string,
+ * you can use #json_strcmp() which performs the translation and comparison
+ * in one step without requiring an output buffer or conversion step.
  *
- * When a C string is created from code points, it is encoded in shortest-form
- * UTF-8. If it contains any code points from U+DC00..U+DCFF,
- * #json_as_unsafe_str() will encode them as 3-byte UTF-8.
- * In particular, the JSON escape <code>\u0000</code> will result in the C
- * string sequence ED B1 9C 75 30 30 30 30.
+ *    #json_as_str()           #json_string_from_str()
+ *    #json_as_unsafe_str()    #json_string_from_unsafe_str()
+ *    #json_as_base64()        #json_base64_from_bytes()
  *
- * The function #json_as_str() will simply fail with #EINVAL if the
- * code points U+0,U+D800..U+DFFF would be present in the input.
+ *    #json_as_strdup()
+ *    #json_as_unsafe_strdup()
  *
- * When a JSON string is converted from a UTF-8 C string, the presence of
- * code points U+D800..U+DFFF will cause #json_string_from_str() to fail
- * with an error. However, the companion #json_unsafe_string_from_str()
- * will convert U+DC00..U+DCFF back into unescaped bytes, reversing the above
- * process to achieve invalidity-preserving conversion between C and JSON.
- *
- * If you need to pass binary data in JSON, use BASE-64 encoding. The functions
- * #json_as_base64() and #json_base64_from_bytes() do this.
+ *    #json_strcmp()
+ *    #json_strcmpn()
  *
  *
  * <h3>Selection</h3>
  *
- * 'Selection' is a mechanism for seeking to a value within a nesting of
- * arrays and objects. Selectors are patterns modeled after Javascript syntax.
+ * 'Selection' is seeking within a nest of arrays and objects to access
+ * a particular value. 'Selectors' are expessions modeled after
+ * Javascript syntax.
  *
- * For example, given the JSON text @code {"foo":[null,{"bar":7}]} @endcode
- * the '7' could be accessed using the selector "foo[1].bar".
- *
+ * For example, the selector "foo[1].bar" applied to the JSON value below
+ * will select the value 7.
  * <pre>
- *        const char *s = "{foo:[null,{bar:7}]}";
- *        int seven = json_select_int(s, "foo[1].bar");
+ *        {
+ *          "foo": [
+ *                   null,
+ *                   { "bar": 7 }
+ *                 ]
+ *        }
  * </pre>
  *
- * #json_select() always sets #errno to #ENOENT if the element was not
- * found (and empty input was used); or sets #errno to 0 if it was found.
+ * Selectors can also use %d or %s to refer to variadic arguments.
+ *
+ *    #json_select()
+ *    #json_selectv()
+ *
+ *    #json_select_int()         #json_default_select_int()
+ *    #json_select_bool()        #json_default_select_bool()
+ *    #json_select_double()      #json_default_select_double()
+ *    #json_select_array()       #json_default_select_array()
+ *    #json_select_object()      #json_default_select_object()
+ *    #json_select_strdup()      #json_default_select_strdup()
  *
  *
- * <h3>Iterators</h3>
+ * <h3>Iteration</h3>
  *
- * Elements of array and members of objects can be accessed using iterators.
- * An iterator is a simple pointer used to keep track of position within
- * the structure value.
+ * 'Iteration' is accessing elements of an array (or members of objects)
+ * in sequence. A simple pointer ('iterator') is used to keep track of the
+ * position within the sequence.
  *
- * For example, to iterate over the members of an object, first call
- * #json_as_object() to obtain the initial iterator position, then
- * repeatedly call #json_object_next() on the iterator to access the
- * key and value of the current member, and advance the iterator to the
- * next member. Use #json_strcmp() to compare the JSON string with a C string.
- * The end of the object is detected when #json_object_next() returns false.
+ * First, an array or object iterator is obtained, then the '_next'
+ * function is applied repeatedly to either get a pointer to the next value,
+ * or a NULL indication that the iteration is exhausted.
  *
- * @code
- *     const char *oi, *key, *value;
- *     char buf[256];
- *
- *     oi = json_as_object("{a:1, b:2}");
- *     while ((value = json_object_next(&oi, &key))) {
- *          db_insert(json_as_str(key, buf, sizeof buf),
- *                    json_as_int(value));
- *     }
- * @endcode
- *
- * Iterating over the elements of an array is similar.
+ *    #json_as_array()              #json_as_object()
+ *    #json_array_next()            #json_object_next()
  *
  *
- * <h3>Parser extensions and limitations</h3>
+ * <h3>Spans</h3>
  *
- * The parser accepts the following extensions to JSON (RFC 7159):
+ * It can be useful sometimes to have access to an entire sub-value
+ * without interpretation. For example, you may be wrapping a JSON
+ * query within another. The 'span' of a value is the number of bytes
+ * it occupies within the JSON input text.
+ *
+ *    #json_span()
+ *
+ *
+ * <h3>Extensions and limitations</h3>
+ *
+ * The parsers accept the following extensions to JSON (RFC 7159):
  * <ul>
  * <li> Extra commas may be present at the end of arrays and objects;
  * <li> Unnecessary escapes inside quoted strings are converted to U+DC5C;
@@ -191,14 +150,19 @@
  * <li>Nesting of arrays and objects is limited to 32768, combined.
  * </li>
  *
- * <h3>Generator functions</h3>
  *
- * The generator functions return a pointer to NUL-terminated JSON text.
+ * <h3>Generating JSON</h3>
+ *
+ * You can use #snprintf to generate most of your own JSON, assisted with
+ * the following functions and string constants.
  *
  *    #json_string_from_str()
  *    #json_string_from_unsafe_str()
  *    #json_base64_from_bytes()
- *    #json_bool()
+ *    #json_true
+ *    #json_false
+ *    #json_null
+ *
  *
  * @author David Leonard; released into Public Domain 2016
  */
@@ -258,12 +222,17 @@ const __JSON char *json_selectv(const __JSON char *json, const char *path, va_li
 #define json_select_strdup(...) json_as_strdup(json_select(__VA_ARGS__))
 
 /* Convenience selector functions that return a default value
- * when the selector path is not found */
-int json_default_select_int(int default_, const __JSON char *json, const char *path, ...);
-int json_default_select_bool(int default_, const __JSON char *json, const char *path, ...);
-double json_default_select_double(double default_, const __JSON char *json, const char *path, ...);
-const __JSON_ARRAYI char *json_default_select_array(const __JSON_ARRAYI char *default_, const __JSON char *json, const char *path, ...);
-const __JSON_OBJECTI char *json_default_select_object(const __JSON_OBJECTI char *default_, const __JSON char *json, const char *path, ...);
+ * only when the selector path is not found. */
+int json_default_select_int(int default_, const __JSON char *json,
+				const char *path, ...);
+int json_default_select_bool(int default_, const __JSON char *json,
+				const char *path, ...);
+double json_default_select_double(double default_, const __JSON char *json,
+				const char *path, ...);
+const __JSON_ARRAYI char *json_default_select_array(const __JSON_ARRAYI char *default_, const __JSON char *json,
+				const char *path, ...);
+const __JSON_OBJECTI char *json_default_select_object(const __JSON_OBJECTI char *default_, const __JSON char *json,
+				const char *path, ...);
 
 /**
  * Begin an iterator over a JSON array.
@@ -488,18 +457,21 @@ int json_is_null(const __JSON char *json);
  * </ul>
  *
  * JSON quoted strings are converted into NUL-terminated, shortest-form
- * UTF-8 C strings, with the exception reagrding 'unsafe' input.strings.
- * Unsafe strings result in an empty string, with #errno set to #EINVAL.
- * An input string is considered unsafe if it would not convert to strict
- * UTF-8. This happens when any of the input UTF-8:
- * <ul><li>is an overlong encoding (eg C0 80 for U+0);
- *     <li>has a sequence that decodes to any codepoint in the
+ * UTF-8 C strings, with an exception regarding 'unsafe' strings.
+ * Input strings that would convert to an 'unsafe' output string will,
+ * instead, convert to an empty output string and set #errno to #ERANGE.
+ * An UTF-8 string is considered unsafe if it contains:
+ * <ul><li>an overlong encoding (eg C0 80 for U+0);
+ *     <li>a sequence that decodes to any codepoint in the
  *         unsafe codepoint set, {U+0, U+D800..U+DFFF, U+110000..};
- *     <li>contains an escape sequence that would decode to an
- *         unsafe codepoint
+ *     <li>an escape sequence that would decode to an unsafe codepoint
  * </ul>
  *
- * If a supplied @a bufsz is too small to hold the whole result, the output
+ * If @a bufsz is zero, the function computes the minimum buffer size
+ * to supply and returns that.
+ *
+ * If @a bufsz is non-zero and too small to hold the whole result, the
+ * output
  * is truncated at the nearest UTF-8 sequence boundary such that a terminating
  * NUL byte can be written (unless @a bufsz is zero).
  * A non-zero return value will always indicate the minimum buffer size
@@ -730,4 +702,4 @@ extern const char json_true[];	/* "true" */
 extern const char json_false[];	/* "false" */
 extern const char json_null[];	/* "null" */
 
-#endif /* JSON_H */
+#endif /* RED_JSON_H */
