@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <math.h>		/* C99's isnan() and NAN are macros */
+#include <limits.h>		/* {INT,LONG}_{MIN,MAX} */
 
 #include "libjson_private.h"
 
