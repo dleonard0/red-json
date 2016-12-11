@@ -110,13 +110,13 @@ get_utf8_raw_bounded(const char *p, const char *p_end, unicode_t *u_return)
  *
  * @returns number of bytes that were stored in buf, or would have been
  *          stored had there been enough space
- * @retval -1 [EINVAL] The code point @a u was too large
+ * @retval 0 [EINVAL] The code point was too large (U+200000 or larger)
  */
-int
-put_utf8_raw(unicode_t u, void *buf, size_t bufsz)
+size_t
+put_utf8_raw(unicode_t u, void *buf, int bufsz)
 {
 	unsigned char *out = buf;
-	size_t outlen = 0;
+	int outlen = 0;
 
 #	define OUT(ch)	do {						\
 				if (outlen < bufsz)			\
@@ -140,7 +140,7 @@ put_utf8_raw(unicode_t u, void *buf, size_t bufsz)
 		OUT(0x80 | ((u >>  0) & 0x3f));
 	} else {
 		errno = EINVAL;
-		return -1;
+		return 0;
 	}
 	return outlen;
 #	undef OUT
@@ -161,7 +161,8 @@ put_utf8_raw(unicode_t u, void *buf, size_t bufsz)
  * @param p_ptr pointer to read and advance. It is always advanced at
  *              least one byte.
  *
- * @returns a sanitized unicode character, never U+0
+ * @returns a sanitized unicode character, always from the set
+ *          {U+1..U+D7FF, U+DC00..U+DCFF, U+E000..U+10FFFF}
  */
 __SANITIZED unicode_t
 get_utf8_sanitized(const char **p_ptr)
@@ -192,13 +193,14 @@ get_utf8_sanitized(const char **p_ptr)
  *
  * @returns the number of bytes stored in buf, or would have been stored
  *          had there been enough space.
+ * @retval 0 [EINVAL] The code point was too large
  */
-int
-put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, size_t bufsz)
+size_t
+put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, int bufsz)
 {
 	if (IS_DCxx(u)) {
 		unsigned char *out = buf;
-		if (bufsz)
+		if (bufsz > 0)
 			*out = u & 0xff;
 		return 1;
 	}

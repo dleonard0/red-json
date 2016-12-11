@@ -37,9 +37,9 @@ typedef unsigned unicode_t;
 
 size_t get_utf8_raw_bounded(const char *p, const char *p_end,
 				unicode_t *u_return);
-int    put_utf8_raw(unicode_t u, void *buf, size_t bufsz);
+size_t put_utf8_raw(unicode_t u, void *buf, int bufsz);
 __SANITIZED unicode_t
        get_utf8_sanitized(const char **p_ptr);
-int    put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, size_t bufsz);
+size_t put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, int bufsz);
 
 #endif /* H_LIBJSON_UTF8 */

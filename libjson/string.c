@@ -133,8 +133,8 @@ get_escaped_sanitized(const __JSON char **json_ptr)
  * @returns number of bytes that were stored, or would have been stored
  *          had there been enough space
  */
-static int
-put_sanitized_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
+static size_t
+put_sanitized_str_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
 {
 	char *out = buf;
 	char ch;
@@ -154,8 +154,8 @@ put_sanitized_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
 		ch = 'u';
 	}
 
-	if (bufsz) bufsz--, *out++ = '\\';
-	if (bufsz) bufsz--, *out++ = ch;
+	if (bufsz > 0) bufsz--, *out++ = '\\';
+	if (bufsz > 0) bufsz--, *out++ = ch;
 	if (ch != 'u')
 		return 2;
 
@@ -163,7 +163,7 @@ put_sanitized_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
 	shift = 16;
 	do {
 		shift -= 4;
-		if (bufsz) {
+		if (bufsz > 0) {
 			bufsz--;
 			*out++ = "0123456789abcdef"[0xf & (u >> shift)];
 		}
@@ -227,6 +227,8 @@ as_str(const __JSON char *json, void *buf, size_t bufsz, int flags)
 		if ((flags & SAFE) && !IS_UTF8_SAFE(u)) {
 			goto invalid;
 		}
+
+		assert(u < 0x200000); /* for put_utf8_raw() */
 		n += put_utf8_raw(u, out + n, bufsz > n ? bufsz-n : 0);
 	}
 	if (quote && *json != quote)
@@ -382,3 +384,112 @@ json_strcmp(const __JSON char *json, const char *cstr)
 	return 1;
 }
 
+/**
+ * Converts a UTF-8 string into a quoted JSON string.
+ *
+ * @param src     UTF-8 input
+ * @param srclen  UTF-8 input size in bytes
+ * @param dst     output buffer for JSON string. On error, this
+ *                the first byte will be set to NUL if there is room.
+ * @param dstsz   size of output buffer, or 0 for a size request
+ * @param flags   Conversion flags: <ul>
+ *                <li>@c SAFE - raise an error if could produce
+ *                              non-strict UTF-8 output
+ *		  </ul>
+ * @return number of bytes stored in output buffer, or would have
+ *         been stored because @a dstsz was zero.
+ * @retval 0 [EINVAL] The input contained U+DC00..U+DCFF and the
+ *                    SAFE flag had been specified
+ * @retval 0 [EINVAL] The input was otherwise malformed UTF-8
+ * @retval 0 [ENOMEM] Insufficient space in output buffer
+ */
+static
+size_t
+string_from_strn(const char *src, int srclen,
+    __JSON char *dst, size_t dstsz, int flags)
+{
+	__JSON char *out = dst;
+	__JSON char *out_end = dst + dstsz;
+	const char *src_end = src + srclen;
+	int outlen = 0;
+
+	assert(src);
+
+#define OUT(ch) do {						\
+		if (out < out_end)				\
+			*out++ = (ch);				\
+		outlen++;					\
+	} while (0)
+
+	OUT('"');
+	while (src < src_end) {
+		unicode_t u;
+		size_t n;
+
+		n = get_utf8_raw_bounded(src, src_end, &u);
+		if (n == 0) {
+			errno = EINVAL; /* Bad UTF-8 in source string */
+			return 0;
+		}
+		src += n;
+
+		if ((flags & SAFE) && !IS_UTF8_SAFE(u)) {
+			errno = EINVAL;
+			return 0;
+		}
+
+		/* It is OK to call put_sanitized_str_escaped() here in SAFE
+		 * mode because IS_UTF8_SAFE() will have caught any
+		 * DCxx code points; so only valid UTF-8 will be stored. */
+		n = put_sanitized_str_escaped(u, out, out_end - out);
+		outlen += n;
+		out += n;
+	}
+	OUT('"');
+	OUT('\0');
+
+	if (dstsz && outlen > dstsz) {
+		errno = ENOMEM;
+		*dst = '\0';
+		return 0;
+	}
+	return outlen;
+}
+
+__PUBLIC
+size_t
+json_string_from_str(const char *src, __JSON char *dst, size_t dstsz)
+{
+	if (!src) {
+		errno = EINVAL;
+		return 0;
+	}
+	return string_from_strn(src, strlen(src), dst, dstsz, SAFE);
+}
+
+__PUBLIC
+size_t
+json_string_from_strn(const char *src, int srclen,
+    __JSON char *dst, size_t dstsz)
+{
+	return string_from_strn(src, srclen, dst, dstsz, SAFE);
+}
+
+__PUBLIC
+size_t
+json_string_from_unsafe_str(const char *src, __JSON char *dst, size_t dstsz)
+{
+	if (!src) {
+		errno = EINVAL;
+		return 0;
+	}
+	return string_from_strn(src, strlen(src), dst, dstsz, 0);
+}
+
+__PUBLIC
+size_t
+json_string_from_unsafe_strn(const char *src, int srclen,
+    __JSON char *dst, size_t dstsz)
+{
+	return string_from_strn(src, srclen, dst, dstsz, 0);
+}

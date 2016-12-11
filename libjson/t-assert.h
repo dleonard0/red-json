@@ -53,14 +53,15 @@ fputary(const char *a, size_t n, FILE *f)
 	__FILE__, __LINE__, a_arg, b_arg
 
 /* A macro to assert two C strings are not NULL and have equal content */
-#define assert_streq(a,b) _assert_streq(_assert_args(#a, #b), a, b)
+#define assert_streq(a,b) _assert_streq(_assert_args(#a, #b), a, b, "")
+#define assert_streqx(a,b,x) _assert_streq(_assert_args(#a, #b), a, b, x)
 inline void
-_assert_streq(_assert_params, const char *a, const char *b)
+_assert_streq(_assert_params, const char *a, const char *b, const char *ext)
 {
 	if (!a || !b || strcmp(a, b) != 0) {
 	    fprintf(stderr,
-	       "%s: %d: assertion failure assert_streq(%s, %s)\n"
-	       "\t%s => ", file, line, a_arg, b_arg, a_arg);
+	       "%s: %d: assertion failure assert_streq(%s, %s) %s\n"
+	       "\t%s => ", file, line, a_arg, b_arg, ext, a_arg);
 	    fputs_esc(a, stderr);
 	    fprintf(stderr, "\n\t%s => ", b_arg);
 	    fputs_esc(b, stderr);
