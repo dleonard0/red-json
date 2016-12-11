@@ -28,7 +28,8 @@ skip_white(const __JSON char **json_ptr)
  * @param json_ptr  pointer to (optional) JSON text
  * @param ch        expected character to skip
  *
- * @retval 0 No skipping occurred, i.e @a ch was not the next character.
+ * @retval 0 No skipping occurred because @a ch was not the next character.
+ * @retval nonzero The character and subsequent whitespace was skipped.
  */
 int
 can_skip_delim(const __JSON char **json_ptr, char ch)
@@ -50,6 +51,8 @@ can_skip_delim(const __JSON char **json_ptr, char ch)
  * @param json_ptr  pointer to (optional) JSON text
  *
  * @retval 0 No skipping occurred.
+ * @retval nonzero An unquoted word or quoted string and its trailing
+ *                 whitespace was skipped.
  */
 static int
 skip_word_or_string(const __JSON char **json_ptr)
@@ -93,7 +96,7 @@ skip_word_or_string(const __JSON char **json_ptr)
  *
  * @param json_ptr  pointer to (optional) JSON text (not whitespace!)
  *
- * @retval 1 A value was skipped.
+ * @retval nonzero A value was skipped.
  * @retval 0 [EINVAL] Nothing was skipped.
  * @retval 0 [ENOMEM] The nesting depth limit was reached.
  */

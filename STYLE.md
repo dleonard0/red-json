@@ -34,6 +34,24 @@ allow the code to function.
 Avoid `alloca()`. Avoid variable-length arrays (VLAs). If you need these,
 prefer your caller to provide a buffer.
 
+# Unit tests
+
+Unit tests should be placed in simple programs whose name begins with `t-`.
+These programs are self-contained and may be run in parallel by
+`make check`.
+
+Each test program should be a simple `main()` function that sets up
+the functions under test, and uses `assert()` for every expected outcome.
+
+Keep test programs simple.
+They should not need arguments.
+They should not over-test.
+
+Avoid too many levels of preprocessor macros.
+Macros are handy for exercising multiple aspects of a function, but
+because test programs are used for debugging ("Why did my change over *here*
+cause that test to fail over *there*?") it should be clear how to
+run the test in a debugger and step into the failure.
 
 # Comment style
 
@@ -100,6 +118,10 @@ The `@param` and `@returns` lines should be followed by a noun clause.
 If they can fit on the same line, omit the leading article.
 The terminating period must be omitted unless there are following
 sentences.
+
+The `@returns` and `@retval` lines should refer to
+parameters and system state in the present tense,
+but should refer to the operation of the function in the past tense.
 
 ## Describe beyond the name
 

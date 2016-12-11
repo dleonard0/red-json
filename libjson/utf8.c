@@ -13,12 +13,12 @@
  * encountered, data beyond it will not be accessed. At best, the NUL
  * will be decoded as U+0 and the function will return 1.
  *
- * @param p        pointer to UTF-8 encoded data (NUL is not special)
- * @param u_return storage for resulting decoded code point
+ * @param p        input pointer to UTF-8 encoded data (NUL is not special)
+ * @param u_return storage for the decoded code point
  *
- * @returns the number of bytes used from @a p to fill in @a u_return
- * @retval 0 The input was not UTF-8 encoded.
- * @retval 0 The input was an overlong UTF-8 encoding.
+ * @returns the number of bytes decoded to produce the code point
+ * @retval 0 The input is not a valid UTF-8 encodng.
+ * @retval 0 The input is an overlong UTF-8 encoding.
  */
 static size_t
 get_utf8_raw(const char *p, unicode_t *u_return)
@@ -73,9 +73,9 @@ get_utf8_raw(const char *p, unicode_t *u_return)
  * @param u_return storage for resulting decoded code point
  *
  * @returns the number of bytes consumed from @p to fill in @a u_return
- * @retval 0 The input was not UTF-8 encoded.
- * @retval 0 The input was an overlong UTF-8 encoding.
- * @retval 0 The input was a truncated UTF-8 encoding.
+ * @retval 0 The input is not valid UTF-8.
+ * @retval 0 The input is an overlong UTF-8 encoding.
+ * @retval 0 The input is a truncated UTF-8 encoding.
  */
 size_t
 get_utf8_raw_bounded(const char *p, const char *p_end, unicode_t *u_return)
@@ -110,7 +110,7 @@ get_utf8_raw_bounded(const char *p, const char *p_end, unicode_t *u_return)
  *
  * @returns number of bytes that were stored in buf, or would have been
  *          stored had there been enough space
- * @retval 0 [EINVAL] The code point was too large (U+200000 or larger)
+ * @retval 0 [EINVAL] The code point is too large, U+200000 or larger.
  */
 size_t
 put_utf8_raw(unicode_t u, void *buf, int bufsz)
@@ -193,7 +193,7 @@ get_utf8_sanitized(const char **p_ptr)
  *
  * @returns the number of bytes stored in buf, or would have been stored
  *          had there been enough space.
- * @retval 0 [EINVAL] The code point was too large
+ * @retval 0 [EINVAL] The code point is too large, U+200000 or larger.
  */
 size_t
 put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, int bufsz)

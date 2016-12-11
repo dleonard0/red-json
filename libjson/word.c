@@ -32,10 +32,10 @@ is_word_char(__JSON char ch)
  * @param str   a UTF-8 string
  * @param strsz length of the string
  *
- * @retval -1 the JSON word is invalid, or sorts earlier than the string
- * @retval  0 the JSON word is identical to the string
- * @retval  0 the JSON word is invalid and the string is the empty string
- * @retval +1 the JSON word sorts later than the string
+ * @retval -1 @a json is invalid, or sorts earlier than @a str.
+ * @retval  0 @a json is identical to @a str.
+ * @retval  0 @a json is invalid and @a str is the empty string.
+ * @retval +1 @a json sorts later than @a str.
  */
 int
 word_strcmpn(const __JSON char *json, const char *str, size_t strsz)
@@ -65,10 +65,10 @@ word_strcmpn(const __JSON char *json, const char *str, size_t strsz)
  * @param json  (optional) JSON word (no whitespace)
  * @param str  a NUL-terminated UTF-8 C string
  *
- * @retval -1 the JSON word is invalid, or sorts earlier than the C string
- * @retval  0 the JSON word is identical to the C string
- * @retval  0 the JSON word is invalid and the C string is the empty string
- * @retval +1 the JSON word sorts later than the C string
+ * @retval -1 @a json is invalid, or sorts earlier than @a str.
+ * @retval  0 @a json is identical to @a str.
+ * @retval  0 @a json is invalid and @a str is the empty string.
+ * @retval +1 @a json sorts later than @a str.
  */
 int
 word_strcmp(const __JSON char *json, const char *str)

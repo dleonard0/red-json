@@ -37,9 +37,10 @@ unsigned char char_to_base64[256] = {
  *
  * @param ch   ASCII hexadecimal input digit
  * @param out  output accumulator. The accumulator will be
- *             shifted up and the lower four bits from @a ch
+ *             shifted up and the lower four bits from @a ch.
  *
- * @retval 1 success
+ * @retval 0 The character is not a hexadecimal digit.
+ * @retval nonzero The digit was shifted into the output.
  */
 static int
 shift_hex(__JSON char ch, char *out)

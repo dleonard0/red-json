@@ -21,8 +21,8 @@ xdigit_as_int(char ch)
  *                 The pointer will be advanced past the digits on success.
  * @param u_return storage for the decoded hexadecimal number
  *
- * @retval 1 Successful scan, and the pointer was advanced.
- * @retval 0 The input was not four hexadecimal digits.
+ * @retval 1 The scan was successful, and the pointer was advanced.
+ * @retval 0 The input is not four hexadecimal digits.
  */
 static int
 four_xdigits(const __JSON char **json_ptr, unicode_t *u_return)
@@ -192,8 +192,9 @@ put_sanitized_str_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
  * @returns the number of bytes stored in the output buffer (including
  *          the trailing NUL) or would have been stored had there been
  *          enough space
- * @retval 0 [EINVAL] Invalid UTF-8 was present and the SAFE flag was set.
- * @retval 0 [EINVAL] The input was neither a word nor a quoted string.
+ * @retval 0 [EINVAL] the JSON text contains invalid UTF-8, and
+ *                    the SAFE flag is set.
+ * @retval 0 [EINVAL] The input is neither a word nor a quoted string.
  */
 static size_t
 as_str(const __JSON char *json, void *buf, size_t bufsz, int flags)
@@ -261,8 +262,8 @@ fail:
  *
  * @returns pointer to a heap-allocated, NUL-terminated UTF-8 string
  * @retval NULL [EINVAL] The output would contain invalid UTF-8 and
- *                       the #SAFE flag was supplied.
- * @retval NULL [ENOMEM] The storage could not be allocated
+ *                       the #SAFE flag is set.
+ * @retval NULL [ENOMEM] Heap storage could not be allocated.
  */
 static char *
 as_str_alloc(const __JSON char *json, int flags)
@@ -312,7 +313,7 @@ json_as_strdup(const __JSON char *json)
  * @param cstr_end the end of the C string segment. Memory at this location
  *                 will not be accessed.
  *
- * @retval -1 The JSON string is invalid or its content sorts before @a cstr.
+ * @retval -1 The JSON string is invalid, or its content sorts before @a cstr.
  * @retval  0 The JSON string's content is equal to @a cstr.
  * @retval +1 The JSON string's content sorts after @a cstr.
  */
@@ -398,10 +399,10 @@ json_strcmp(const __JSON char *json, const char *cstr)
  *		  </ul>
  * @return number of bytes stored in output buffer, or would have
  *         been stored because @a dstsz was zero.
- * @retval 0 [EINVAL] The input contained U+DC00..U+DCFF and the
- *                    SAFE flag had been specified
- * @retval 0 [EINVAL] The input was otherwise malformed UTF-8
- * @retval 0 [ENOMEM] Insufficient space in output buffer
+ * @retval 0 [EINVAL] The input contains U+DC00..U+DCFF and the
+ *                    SAFE flag is set.
+ * @retval 0 [EINVAL] The input is malformed UTF-8.
+ * @retval 0 [ENOMEM] The output buffer is too small.
  */
 static
 size_t

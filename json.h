@@ -207,9 +207,10 @@
  *              component of the @a path
  *
  * @returns pointer within @a json to the selected value
- * @retval  NULL  [ENOENT] The path was not found in the value
- * @retval  NULL  [EINVAL] The path was malformed
- * @retval  NULL  [EINVAL] An array index was negative
+ * @retval  NULL  [ENOENT] The path was not found in the value.
+ * @retval  NULL  [ENOMEM] The input is too deeply nested.
+ * @retval  NULL  [EINVAL] The path is malformed.
+ * @retval  NULL  [EINVAL] An array index is negative.
  */
 const __JSON char *json_select(const __JSON char *json, const char *path, ...)
     __attribute__((format(printf,2,3)));
@@ -262,7 +263,7 @@ char *json_default_select_strdup(
  * @param json  (optional) JSON text
  *
  * @returns initial element pointer, for use with #json_array_next()
- * @retval NULL [EINVAL] the value is not an array
+ * @retval NULL [EINVAL] the value is not an array.
  */
 const __JSON_ARRAYI char *json_as_array(const __JSON char *json);
 
@@ -276,6 +277,7 @@ const __JSON_ARRAYI char *json_as_array(const __JSON char *json);
  *
  * @returns the next element of the array
  * @retval NULL There are no more elements in the array.
+ * @retval NULL [ENOMEM] The structure is too deeply nested.
  * @retval NULL [EINVAL] The array is malformed.
  */
 const __JSON char *json_array_next(const __JSON_ARRAYI char **index_ptr);
@@ -314,6 +316,7 @@ const __JSON_OBJECTI char *json_as_object(const __JSON char *json);
  *
  * @returns the next member's value
  * @retval NULL There are no more members in the object.
+ * @retval NULL [ENOMEM] The structure is too deeply nested.
  * @retval NULL [EINVAL] The object is malformed.
  */
 const __JSON char *json_object_next(const __JSON_OBJECTI char **index_ptr,
@@ -385,9 +388,9 @@ size_t json_span(const __JSON char *json);
  *
  * @returns the value converted to floating-pointer
  * @retval  NAN [EINVAL] The JSON text is invalid or malformed.
- * @retval  HUGE_VAL [ERANGE] The value was too positive.
- * @retval -HUGE_VAL [ERANGE] The value was too negative.
- * @retval  0 [ERANGE] The value was too small and underflowed.
+ * @retval  HUGE_VAL [ERANGE] The value is too positive.
+ * @retval -HUGE_VAL [ERANGE] The value is too negative.
+ * @retval  0 [ERANGE] The value is too small and conversion underflowed.
  */
 double json_as_double(const __JSON char *json);
 
@@ -413,9 +416,9 @@ double json_as_double(const __JSON char *json);
  * @param json  (optional) JSON text
  *
  * @returns the value converted to a long integer
- * @retval 0 [EINVAL] The value was @c NULL or invalid.
- * @retval LONG_MIN [ERANGE] the value was too negative.
- * @retval LONG_MAX [ERANGE] the value was too positive.
+ * @retval 0 [EINVAL] The JSON text is invalid, malformed or not a number.
+ * @retval LONG_MIN [ERANGE] The number is too large.
+ * @retval LONG_MAX [ERANGE] The number is too large.
  */
 long json_as_long(const __JSON char *json);
 
@@ -428,9 +431,9 @@ long json_as_long(const __JSON char *json);
  * @param json  (optional) JSON text
  *
  * @returns the value converted to an integer
- * @retval 0 [EINVAL] The value was @c NULL or invalid.
- * @retval INT_MIN [ERANGE] the value was too negative.
- * @retval INT_MAX [ERANGE] the value was too positive.
+ * @retval 0 [EINVAL] The JSON text is invalid, malformed or not a number.
+ * @retval INT_MIN [ERANGE] The number is too large.
+ * @retval INT_MAX [ERANGE] The number is too large.
  */
 int json_as_int(const __JSON char *json);
 
@@ -456,15 +459,15 @@ int json_as_int(const __JSON char *json);
  *
  * @param json  (optional) JSON text
  *
- * @retval nonzero The value was <code>true</code>.
- * @retval 0 The value was <code>false</code>.
- * @retval 0 [EINVAL] The value was <code>null</code>.
- * @retval 0 [EINVAL] The value was <code>""</code> or <code>''</code>.
- * @retval 0 [EINVAL] The value was <code>0</code>.
- * @retval 0 [EINVAL] The value was <code>undefined</code>.
- * @retval 0 [EINVAL] The value was <code>NaN</code>.
- * @retval 0 [EINVAL] The value was @c NULL or empty.
- * @retval nonzero [EINVAL] The value was not a boolean, nor falsey.
+ * @retval nonzero The value is <code>true</code>.
+ * @retval 0 The value is <code>false</code>.
+ * @retval 0 [EINVAL] The value is <code>null</code>.
+ * @retval 0 [EINVAL] The value is <code>""</code> or <code>''</code>.
+ * @retval 0 [EINVAL] The value is <code>0</code>.
+ * @retval 0 [EINVAL] The value is <code>undefined</code>.
+ * @retval 0 [EINVAL] The value is <code>NaN</code>.
+ * @retval 0 [EINVAL] The value is @c NULL or empty, or looks falsey.
+ * @retval nonzero [EINVAL] The value is not a boolean.
  */
 int json_as_bool(const __JSON char *json);
 
@@ -473,8 +476,8 @@ int json_as_bool(const __JSON char *json);
  *
  * @param json  (optional) JSON text
  *
- * @retval 0 The value was not <code>null</code>.
- * @retval nonzero The value was <code>null</code>.
+ * @retval 0 The value is not <code>null</code>.
+ * @retval nonzero The value is <code>null</code>.
  */
 int json_is_null(const __JSON char *json);
 
@@ -526,12 +529,13 @@ int json_is_null(const __JSON char *json);
  *              regardless of whether an error occurs or not.
  * @param bufsz the size of @a buf, or 0 if only a return value is wanted
  *
- * @returns the minimum @a bufsz required to convert the input without
- *          truncation; or
- * @retval 0 [EINVAL] The JSON text was invalid or malformed.
- * @retval 0 [EINVAL] The JSON string was malformed.
- * @retval 0 [EINVAL] The JSON string was well-formed, but the
- *                    output buffer would have received invalid UTF-8.
+ * @returns the minimum buffer size required to convert the input without
+ *          truncation, including terminating NUL
+ * @retval 0 [ENOMEM] The buffer size is too small and non-zero.
+ * @retval 0 [EINVAL] The input text is invalid or malformed.
+ * @retval 0 [EINVAL] The input text is not a string.
+ * @retval 0 [EINVAL] The input string is well-formed, but would have
+ *                    caused the output buffer to receive invalid UTF-8.
  */
 size_t json_as_str(const __JSON char *json, void *buf, size_t bufsz);
 
@@ -560,8 +564,9 @@ size_t json_as_str(const __JSON char *json, void *buf, size_t bufsz);
  * @param bufsz the size of @a buf, or 0 if only a return value is wanted
  *
  * @returns the minimum @a bufsz required to convert the input without
- *          truncation; or
- * @retval 0 [EINVAL] on error
+ *          truncation, including terminating NUL
+ * @retval 0 [ENOMEM] The buffer size is too small and non-zero.
+ * @retval 0 [EINVAL] The input text is not a string.
  */
 size_t json_as_unsafe_str(const __JSON char *json, void *buf, size_t bufsz);
 
@@ -578,8 +583,8 @@ size_t json_as_unsafe_str(const __JSON char *json, void *buf, size_t bufsz);
  *
  * @param json  (optional) JSON text
  *
- * @returns a newly allocated C string containing (modified) UTF-8
- * @retval NULL [EINVAL] Conversion error.
+ * @returns a newly allocated C string
+ * @retval NULL [EINVAL] Conversion error, see #json_as_str().
  * @retval NULL [ENOMEM] Allocation failed.
  *
  * The caller is responsible for calling @c free() on the returned pointer.
@@ -596,8 +601,8 @@ char *json_as_strdup(const __JSON char *json)
  *
  * @param json  (optional) JSON text
  *
- * @returns a newly allocated C string containing (modified) UTF-8; or
- * @retval NULL [EINVAL] Conversion error.
+ * @returns a newly allocated C string
+ * @retval NULL [EINVAL] Conversion error, see #json_as_unsafe_str().
  * @retval NULL [ENOMEM] Allocation failed.
  *
  * The caller is responsible for calling @c free() on the returned pointer.
@@ -639,7 +644,7 @@ int json_as_base64(const __JSON char *json, void *buf, size_t bufsz);
  * @param dstsz maximum size of the output buffer
  *
  * @returns the number of non-NUL bytes that were stored in @a dst
- * @retval -1 [ENOMEM] the @a dstsz is too small
+ * @retval -1 [ENOMEM] The @a dstsz is too small.
  */
 int json_base64_from_bytes(const void *src, size_t srcsz,
 			      __JSON char *dst, size_t dstsz);
@@ -653,22 +658,21 @@ int json_base64_from_bytes(const void *src, size_t srcsz,
  * If the source string contains invalid UTF-8 characters, this
  * function will return 0 and set @c errno to @c EINVAL.
  *
- * If the @a dstsz is 0, then the minimum destination buffer size
+ * If the @a dstsz is 0, then the minimum output buffer size
  * will be computed and returned.
  *
- * If there is insufficient space in the @a dst buffer, this function
- * will still fill and NUL-terminate it, then return 0 [ENOMEM].
- *
+ * If there is insufficient space in the output buffer, this function
+ * will place an empty string in the output, and return 0 [ENOMEM].
  *
  * @param src   (optional) NUL-terminated source string in UTF-8
  * @param dst   output buffer, will be NUL terminated.
  * @param dstsz output buffer size, or 0 to indicate a size request
  *
- * @returns the minimum size of the buffer required if @a dstsz is zero; or
- *         the number of non-NUL characters stored in @a dst.
- * @retval 0 [EINVAL] if the source string contains invalid UTF-8
- * @retval 0 [EINVAL] if the source string is @c NULL
- * @retval 0 [ENOMEM] if the dst buffer has been truncated
+ * @returns the minimum number of bytes of output buffer required, or
+ *         the number of bytes stored in @a dst including the NUL.
+ * @retval 0 [EINVAL] The source string is @c NULL.
+ * @retval 0 [EINVAL] The source string contains invalid UTF-8.
+ * @retval 0 [ENOMEM] The output buffer is too small.
  */
 size_t json_string_from_str(const char *src,
 				__JSON char *dst, size_t dstsz);
@@ -681,7 +685,10 @@ size_t json_string_from_str(const char *src,
  * @param dst    output buffer, will be NUL terminated.
  * @param dstsz  output buffer size, or 0 to indicate a size request
  *
- * @returns same as #json_string_from_str()
+ * @returns the minimum number of bytes of output buffer required, or
+ *         the number of bytes stored in @a dst including the NUL.
+ * @retval 0 [EINVAL] The source string contains invalid UTF-8.
+ * @retval 0 [ENOMEM] The output buffer is too small.
  */
 size_t json_string_from_strn(const char *src, int srclen,
 				__JSON char *dst, size_t dstsz);
@@ -697,15 +704,15 @@ size_t json_string_from_strn(const char *src, int srclen,
  *
  * This function is otherwise similar to #json_string_from_str().
  *
- * @param src   (optional) NUL-terminated source string in UTF-8
+ * @param src   (optional) NUL-terminated source string
  * @param dst   output buffer, will be NUL terminated.
  * @param dstsz output buffer size, or 0 to indicate a size request
  *
  * @returns the minimum size of the buffer filled or required
- * @retval 0 [EINVAL] if the source string contains invalid UTF-8
- *                    other than U+DC00..U+DCFF
- * @retval 0 [EINVAL] if the source string is @c NULL
- * @retval 0 [ENOMEM] if the dst buffer has been truncated
+ * @retval 0 [EINVAL] The source string contains invalid UTF-8
+ *                    characters, other than U+DC00..U+DCFF
+ * @retval 0 [EINVAL] The source string is @c NULL
+ * @retval 0 [ENOMEM] The output buffer is too small.
  */
 size_t json_string_from_unsafe_str(const char *src,
 				__JSON char *dst, size_t dstsz);
@@ -713,13 +720,15 @@ size_t json_string_from_unsafe_str(const char *src,
 /**
  * @see #json_string_from_unsafe_str().
  *
- * @param src    NUL-terminated source string in UTF-8
- * @param srclen number of bytes in @a src to use
+ * @param src    source string
+ * @param srclen number of bytes in the source string
  * @param dst    output buffer, will be NUL terminated.
  * @param dstsz  output buffer size, or 0 to indicate a size request
  *
- * @returns same as #json_string_from_str(),
- *          except that @a src is not checked for @c NULL.
+ * @returns the minimum size of the buffer filled or required
+ * @retval 0 [EINVAL] The source string contains invalid UTF-8
+ *                    characters, other than U+DC00..U+DCFF
+ * @retval 0 [ENOMEM] The output buffer is too small.
  */
 size_t json_string_from_unsafe_strn(const char *src, int srclen,
 				__JSON char *dst, size_t dstsz);
@@ -735,7 +744,7 @@ size_t json_string_from_unsafe_strn(const char *src, int srclen,
  * UTF-8 string by #json_as_str(), and then compared to the UTF-8 in
  * @a cstr. UTF-8 validity of @a cstr is not checked.
  * (It is a property of UTF-8 that bytewise comparison of valid UTF-8
- * strings yields the the same result as codepoint-wise comparison.)
+ * strings yields the same result as codepoint-wise comparison.)
  *
  * @note The JSON value <code>null</code> will compare the same as the
  *       string <code>"null"</code>.
@@ -744,10 +753,12 @@ size_t json_string_from_unsafe_strn(const char *src, int srclen,
  * @param json (optional) JSON text
  * @param cstr UTF-8 C string to compare against
  *
- * @retval  0 if the JSON value compares equal to the string
- * @retval -1 if the JSON string is lexicographically 'smaller' or
- *            if @a json is <code>null</code> or malformed
- * @retval +1 if the JSON string is lexicographically 'larger'
+ * @retval  0 The JSON value compares equal to the C string.
+ * @retval -1 The JSON string is lexicographically 'smaller' than
+ *            the C string; or
+ *            the value is <code>null</code> or malformed or invalid.
+ * @retval +1 The JSON string is lexicographically 'larger' than the
+ *            C string.
  */
 int json_strcmp(const __JSON char *json, const char *cstr);
 
@@ -758,7 +769,12 @@ int json_strcmp(const __JSON char *json, const char *cstr);
  * @param cstr   UTF-8 string segment to compare against
  * @param cstrsz length of the string segment, in bytes
  *
- * @returns same as #json_strcmp()
+ * @retval  0 The JSON value compares equal to the C string.
+ * @retval -1 The JSON string is lexicographically 'smaller' than
+ *            the C string; or
+ *            the value is <code>null</code> or malformed or invalid.
+ * @retval +1 The JSON string is lexicographically 'larger' than the
+ *            C string.
  */
 int json_strcmpn(const __JSON char *json, const char *cstr, size_t cstrsz);
 

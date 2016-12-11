@@ -22,7 +22,7 @@ char buf[1024];
 	} while (0)
 
 #define _assert_bad(fn, src) do {					\
-	    assert_errno(!fn(src, sizeof src - 1, NULL, 0), EINVAL); 	\
+	    assert_errno(!fn(src, sizeof src - 1, NULL, 0), EINVAL);	\
 	    assert_errno(!fn(src, sizeof src - 1, buf, sizeof buf), EINVAL); \
 	} while (0)
 
