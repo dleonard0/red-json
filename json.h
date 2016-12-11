@@ -175,7 +175,6 @@
 #define __JSON         /**< Indicates the string contains JSON */
 #define __JSON_ARRAYI  /**< Indicates pointer is an array iterator */
 #define __JSON_OBJECTI /**< Indicates pointer is an object iterator */
-#define __JSON_MUTF8   /**< indicates a nul-terminated MUTF-8 C string */
 
 /**
  * Selects an element within a JSON structure.
