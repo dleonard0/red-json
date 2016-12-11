@@ -6,7 +6,6 @@
 int
 main()
 {
-
 	assert(json_strcmp("\"json\"", "json") == 0);
 	assert(json_strcmp("\"jsoz\"", "json") > 0);
 	assert(json_strcmp("\"json\"", "jsoz") < 0);

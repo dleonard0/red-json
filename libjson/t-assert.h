@@ -7,7 +7,7 @@
 #define cRED     "\033[31m"
 #define cNORMAL  "\033[m"
 
-/* Puts a character using C escaping */
+/** Puts a character using C escaping */
 inline void
 fputc_esc(int c, FILE *f)
 {
@@ -19,7 +19,7 @@ fputc_esc(int c, FILE *f)
 		fprintf(f, cYELLOW "\\x%02X" cNORMAL, c & 0xff);
 }
 
-/* Puts a string using C quoting and escaping */
+/** Puts a string using C quoting and escaping */
 inline void
 fputs_esc(const char *s, FILE *f)
 {
@@ -33,7 +33,7 @@ fputs_esc(const char *s, FILE *f)
 	}
 }
 
-/* Puts a byte array */
+/** Puts a byte array */
 inline void
 fputary(const char *a, size_t n, FILE *f)
 {

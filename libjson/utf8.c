@@ -4,14 +4,21 @@
 #include "utf8.h"
 
 /**
- * Decode a shortest-form UTF-8 sequence (RFC 3629).
- * Checks only for valid encoding and overlong.
- * Does not interpret code points (eg surrogates)
+ * Decodes a shortest-form UTF-8 sequence into a code point.
  *
- * @param      p        pointer to NUL-terminated UTF-8 encoded data
- * @param[out] u_return storage for decoded code point
- * @return the number of bytes consumed to store value in @a u_return, or
- *         0 on decoding error (invalid UTF-8 encoding)
+ * This function rejects invalid UTF-8 encodings including overlong encoding.
+ * It does not interpret the code points (eg surrogates).
+ *
+ * This function is safe for NUL-terminated strings, because if a NUL is
+ * encountered, data beyond it will not be accessed. At best, the NUL
+ * will be decoded as U+0 and the function will return 1.
+ *
+ * @param p        pointer to UTF-8 encoded data (NUL is not special)
+ * @param u_return storage for resulting decoded code point
+ *
+ * @returns the number of bytes used from @a p to fill in @a u_return
+ * @retval 0 The input was not UTF-8 encoded.
+ * @retval 0 The input was an overlong UTF-8 encoding.
  */
 static size_t
 get_utf8_raw(const char *p, unicode_t *u_return)
@@ -53,11 +60,30 @@ get_utf8_raw(const char *p, unicode_t *u_return)
 	return 0;
 }
 
+/**
+ * Decodes a shortest-form UTF-8 sequence into a code point,
+ * with boundary checks.
+ *
+ * This function rejects invalid UTF-8 encodings including overlong encoding.
+ * It does not interpret the code points (eg surrogates).
+ *
+ * @param p        pointer to UTF-8 encoded data (NUL is not special)
+ * @param p_end    end of encoded data. Data at this location will not
+ *                 be accessed
+ * @param u_return storage for resulting decoded code point
+ *
+ * @returns the number of bytes consumed from @p to fill in @a u_return
+ * @retval 0 The input was not UTF-8 encoded.
+ * @retval 0 The input was an overlong UTF-8 encoding.
+ * @retval 0 The input was a truncated UTF-8 encoding.
+ */
 size_t
 get_utf8_raw_bounded(const char *p, const char *p_end, unicode_t *u_return)
 {
 	size_t expected;
 
+	if (p_end == p)
+		return 0;
 	if ((p[0] & 0x80) == 0x00)
 		expected = 1;
 	else if ((p[0] & 0xe0) == 0xc0)
@@ -74,14 +100,17 @@ get_utf8_raw_bounded(const char *p, const char *p_end, unicode_t *u_return)
 }
 
 /**
- * Encode a unicode codepoint into shortest-form UTF-8 (RFC 3629).
- * Does not treat any code points specially.
+ * Encodes a unicode codepoint directly into shortest-form UTF-8.
  *
- * @param u     a unicode codepoint from U+0000 to U+10FFFF
- * @param buf   (optional) output buffer; required if @a bufsz > 0
+ * This function does not treat any code points specially.
+ *
+ * @param u     a unicode codepoint (U+0..U+10FFFF)
+ * @param buf   (optional) output buffer
  * @param bufsz (optional) size of the output buffer
- * @returns number of bytes that would be stored, or
- *          -1 if the @a u was too large a code point (#EINVAL)
+ *
+ * @returns number of bytes that were stored in buf, or would have been
+ *          stored had there been enough space
+ * @retval -1 [EINVAL] The code point @a u was too large
  */
 int
 put_utf8_raw(unicode_t u, void *buf, size_t bufsz)
@@ -118,9 +147,21 @@ put_utf8_raw(unicode_t u, void *buf, size_t bufsz)
 }
 
 /**
- * Reads a UTF-8 character and maps invalid bytes to U+DC00..U+DCFF.
- * @param p_ptr[inout] pointer to read and advance
- * @returns a "sanitized" unicode code point
+ * Consumes a UTF-8 unicode character, sanitizing invalid UTF-8,
+ * and otherwise valid encodings from {U+0,U+D800.U+DFFF}.
+ *
+ * This function either consumes and returns the next UTF-8 character
+ * unaltered, or it consumes the next byte, mapping it into U+DC00..U+DCFF.
+ *
+ * This function is safe to use with NUL-terminated inputs, as it
+ * will not access memory beyond a NUL byte. However, if called with
+ * a NUL byte at the pointer, this function will return U+DC00 and advance
+ * the pointer over the NUL.
+ *
+ * @param p_ptr pointer to read and advance. It is always advanced at
+ *              least one byte.
+ *
+ * @returns a sanitized unicode character, never U+0
  */
 __SANITIZED unicode_t
 get_utf8_sanitized(const char **p_ptr)
@@ -138,13 +179,19 @@ get_utf8_sanitized(const char **p_ptr)
 }
 
 /**
- * Puts a sanitized code point into a dirty UTF-8 output.
- * If the code point is in U+DC00..U+DCFF it is unwrapped back
- * into an "invalid" byte.
- * @param u     Sanitized code point
- * @param buf   Output buffer
- * @param bufsz size of the buffer. No more than this will be stored.
- * @returns  number of bytes that would have been written to buf
+ * Stores a sanitized code point into a dirty UTF-8 output buffer.
+ *
+ * If the code point is in U+DC00..U+DCFF then it will be unwrapped back
+ * into an "invalid" byte and stored in the output buffer.
+ * Otherwise, the shortest-form UTF-8 encoding of @a u is stored in
+ * the buffer.
+ *
+ * @param u     sanitized code point
+ * @param buf   output buffer
+ * @param bufsz output buffer size
+ *
+ * @returns the number of bytes stored in buf, or would have been stored
+ *          had there been enough space.
  */
 int
 put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, size_t bufsz)
@@ -157,4 +204,3 @@ put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, size_t bufsz)
 	}
 	return put_utf8_raw(u, buf, bufsz);
 }
-

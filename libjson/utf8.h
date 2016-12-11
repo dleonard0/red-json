@@ -8,15 +8,22 @@
 typedef unsigned unicode_t;
 
 /**
- * The "sanitized" unicode subtype is defined as unicode_t but excluding
- * {U+0,U+D800..U+DBFF,U+DD00..U+DFFF,U+110000..}. It uses
- * U+DC00..U+DCFF to hold "invalid" bytes. This is mostly compatible with
- * RFC 3629's UTF-8, except that the otherwise invalid range U+DC00..U+DCFF
- * is unpacked on output to 'invalid' bytes, intended for lossless translation.
- * This invalid-preserving translation technique is due to
+ * A sanitized unicode character excludes characters from
+ * {U+0,U+D800..U+DBFF,U+DD00..U+DFFF,U+110000..} and uses
+ * U+DC00..U+DCFF to transport "invalid" bytes.
+ *
+ * In code, this is designated with the type
+ * <code>__SANITIZED unicode_t</code>.
+ *
+ * This encoding is slightly incompatible with RFC 3629's UTF-8 which
+ * excludes the invalid range U+DC00..U+DCFF, and includes U+0.
+ * @see #IS_UTF8_SAFE().
+ *
+ * The lossless or invalid-byte-preserving translation technique is due to
  * Marcus Kuhn ("Substituting malformed UTF-8 sequences in a decoder", 2000).
  */
 #define __SANITIZED
+
 #define IS_SURROGATE(u)     (((u) & ~0x7ff) == 0xd800)  /* U+D800 .. U+DFFF */
 #define IS_SURROGATE_HI(u)  (((u) & ~0x3ff) == 0xd800)  /* U+D800 .. U+DBFF */
 #define IS_SURROGATE_LO(u)  (((u) & ~0x3ff) == 0xdc00)  /* U+DC00 .. U+DFFF */

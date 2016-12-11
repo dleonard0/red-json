@@ -32,6 +32,15 @@ unsigned char char_to_base64[256] = {
   /* f0 */ BAD,BAD,BAD,BAD,BAD,BAD,BAD,BAD, BAD,BAD,BAD,BAD,BAD,BAD,BAD,BAD,
 };
 
+/**
+ * Shifts a hexadecimal digit into an 8-bit accumulator.
+ *
+ * @param ch   ASCII hexadecimal input digit
+ * @param out  output accumulator. The accumulator will be
+ *             shifted up and the lower four bits from @a ch
+ *
+ * @retval 1 success
+ */
 int
 shift_hex(__JSON char ch, char *out)
 {

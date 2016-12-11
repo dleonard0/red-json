@@ -6,7 +6,7 @@
 #include "libjson_private.h"
 #include "utf8.h"
 
-/** Convert a hexadecimal digit into its integer value */
+/** Converts a hexadecimal digit into its integer value. */
 static unsigned
 xdigit_as_int(char ch)
 {
@@ -15,12 +15,14 @@ xdigit_as_int(char ch)
 }
 
 /**
- * Scan a four-digit hexadecimal number.
+ * Scans a four-digit hexadecimal number.
  *
- * @param json_ptr pointer to (optional) JSON input
- * @param u_return storage for decoded hexadecimal number
- * @return 0 unless four hexadecimal digits were decoded into
- *         u_return and the json_ptr was advanced
+ * @param json_ptr pointer to (optional) JSON input.
+ *                 The pointer will be advanced past the digits on success.
+ * @param u_return storage for the decoded hexadecimal number
+ *
+ * @retval 1 Successful scan, and the pointer was advanced.
+ * @retval 0 The input was not four hexadecimal digits.
  */
 static int
 four_xdigits(const __JSON char **json_ptr, unicode_t *u_return)
@@ -45,12 +47,16 @@ four_xdigits(const __JSON char **json_ptr, unicode_t *u_return)
 
 
 /**
- * Decode a UTF-8 code point or escape sequence from a quoted JSON string.
+ * Decodes a single UTF-8 character or escape sequence from a quoted string.
  *
- * Invalid escapes are treated as beginning with "invalid" code U+DC5C.
+ * Invalid escapes are treated as though the initial backslash was an
+ * invalid byte. That is it returns U+DC5C.
  *
- * @param json_ptr  pointer-to-pointer to UTF-8, always advanced
- * @return codepoint (never an error)
+ * Invalid bytes are always mapped into U+DC00..U+DCFF.
+ *
+ * @param json_ptr  pointer to UTF-8 string position, always advanced
+ *
+ * @returns a sanitized unicode codepoint
  */
 static
 __SANITIZED unicode_t
@@ -59,7 +65,11 @@ get_escaped_sanitized(const __JSON char **json_ptr)
 	__SANITIZED unicode_t u;
 	const __JSON char *after_backslash;
 
+	/* Although this function could return U+DC00 for NULs, if it
+	 * is ever called that way, then something is wrong. We would
+	 * be advancing over the end of a NUL-terminated JSON input string. */
 	assert(**json_ptr != '\0');
+
 	u = get_utf8_sanitized(json_ptr);
 	if (u != '\\')
 		return u; /* Not an escape */
@@ -108,43 +118,27 @@ get_escaped_sanitized(const __JSON char **json_ptr)
 	    case 't': return 0x0009;
 	}
 
-	/* Escape sequence was unrecognised; sanitize the \ */
+	/* The escape sequence was unrecognised; sanitize the \ */
 	*json_ptr = after_backslash;
 	return 0xdc5c;
 }
 
-
-/** Puts \uNNNN */
-static int
-put_uescape(unicode_t u, void *buf, size_t bufsz)
-{
-	char *out = buf;
-	unsigned shift;
-
-	if (bufsz) bufsz--, *out++ = '\\';
-	if (bufsz) bufsz--, *out++ = 'u';
-
-	shift = 16;
-	do {
-		shift -= 4;
-		if (bufsz) bufsz--,
-		           *out++ = "0123456789abcdef"[0xf & (u >> shift)];
-	} while (shift);
-	return 6;
-}
-
-/** Puts a unicode codepoint, escaped for a JSON string.
+/**
+ * Puts a unicode codepoint, suitably string escaped, into the buffer.
+ *
  * @param u     sanitized code point
  * @param buf   output buffer
- * @param bufsz sizeof of the output buffer
- * @return number of bytes written to buf if it were big enough
+ * @param bufsz output buffer size
+ *
+ * @returns number of bytes that were stored, or would have been stored
+ *          had there been enough space
  */
 static int
 put_sanitized_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
 {
 	char *out = buf;
 	char ch;
-
+	unsigned shift;
 
 	switch (u) {
 	case 0x0008: ch = 'b'; break;
@@ -155,30 +149,51 @@ put_sanitized_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
 	case 0x005c: ch = '\\'; break;
 	case 0x0022: ch = '"'; break;
 	default:
-		if (u < 0x20)
-			return put_uescape(u, buf, bufsz);
-		return put_sanitized_utf8(u, buf, bufsz);
+		if (u >= 0x20)
+			return put_sanitized_utf8(u, buf, bufsz);
+		ch = 'u';
 	}
 
 	if (bufsz) bufsz--, *out++ = '\\';
 	if (bufsz) bufsz--, *out++ = ch;
-	return 2;
+	if (ch != 'u')
+		return 2;
+
+	assert(u <= 0xffff);
+	shift = 16;
+	do {
+		shift -= 4;
+		if (bufsz) {
+			bufsz--;
+			*out++ = "0123456789abcdef"[0xf & (u >> shift)];
+		}
+	} while (shift);
+	return 6;
 }
 
 
 #define SAFE 1
 
 /**
- * Convert a JSON value into a NUL-terminated C string.
+ * Converts a JSON value into a NUL-terminated C string.
+ *
+ * Bare words are copied without change. Quoted strings have their
+ * escaped sequences decoded.
+ *
  * @param json  (optional) JSON text
- * @param buf   (optional) output buffer, always NUL-terminated
- * @param bufsz (optional) size of output buffer, or 0 for no output
+ * @param buf   (optional) output buffer. This will always be NUL-terminated.
+ *              If an error occurs, and there is space, the first byte
+ *              of the buffer will be set to NUL.
+ * @param bufsz (optional) size of the output buffer
  * @param flags <ul>
- *              <li>#SAFE: fail if the output would contain invalid UTF-8
+ *              <li>#SAFE: don't allow the output to contain invalid UTF-8
  *              </ul>
- * @return number of bytes modified in the output buffer, or would have
- *         been had there been enough room; or
- *         0 if the #SAFE flag was set and bad UTF-8 was present (#EINVAL)
+ *
+ * @returns the number of bytes stored in the output buffer (including
+ *          the trailing NUL) or would have been stored had there been
+ *          enough space
+ * @retval 0 [EINVAL] Invalid UTF-8 was present and the SAFE flag was set.
+ * @retval 0 [EINVAL] The input was neither a word nor a quoted string.
  */
 static size_t
 as_str(const __JSON char *json, void *buf, size_t bufsz, int flags)
@@ -237,12 +252,15 @@ fail:
 }
 
 /**
- * Convert a JSON value to an allocated C string.
+ * Converts a JSON value to a heap-allocated C string.
+ *
  * @param json (optional) JSON text
  * @param flags @see #as_str()
- * @return NULL #EINVAL if #SAFE and the output would contain invalid UTF-8; or
- *         NULL #ENOMEM if storage could not be allocated; or
- *         pointer to a NUL-terminated UTF-8 string
+ *
+ * @returns pointer to a heap-allocated, NUL-terminated UTF-8 string
+ * @retval NULL [EINVAL] The output would contain invalid UTF-8 and
+ *                       the #SAFE flag was supplied.
+ * @retval NULL [ENOMEM] The storage could not be allocated
  */
 static char *
 as_str_alloc(const __JSON char *json, int flags)
@@ -282,14 +300,29 @@ json_as_strdup(const __JSON char *json)
 	return as_str_alloc(json, SAFE);
 }
 
+/**
+ * Compares content of a quoted JSON string with a UTF-8 C string segment.
+ *
+ * @param json     JSON string value
+ * @param cstr     C string segment. The segment need not be NUL-terminated.
+ *                 It may contain UTF-8 encodings of sanitized code points
+ *                 U+DC00..U+DCFF.
+ * @param cstr_end the end of the C string segment. Memory at this location
+ *                 will not be accessed.
+ *
+ * @retval -1 The JSON string is invalid or its content sorts before @a cstr.
+ * @retval  0 The JSON string's content is equal to @a cstr.
+ * @retval +1 The JSON string's content sorts after @a cstr.
+ */
 static int
-string_cmp(const __JSON char *json, const char *str, const char *str_end)
+string_cmp(const __JSON char *json, const char *cstr, const char *cstr_end)
 {
 	char quote;
 
-	quote = *json++;
+	assert(*json == '\'' || *json == '"');
 
-	while (str < str_end) {
+	quote = *json++;
+	while (cstr < cstr_end) {
 		__SANITIZED unicode_t ju;
 		unicode_t su;
 		size_t n;
@@ -297,10 +330,10 @@ string_cmp(const __JSON char *json, const char *str, const char *str_end)
 		if (!*json || *json == quote)
 			return -1; /* json string is short */
 
-		n = get_utf8_raw_bounded(str, str_end, &su);
+		n = get_utf8_raw_bounded(cstr, cstr_end, &su);
 		if (n == 0)
-			return 1; /* Broken str sorts low */
-		str += n;
+			return 1; /* Broken cstr sorts low */
+		cstr += n;
 
 		ju = get_escaped_sanitized(&json);
 		if (ju != su)
@@ -314,39 +347,29 @@ string_cmp(const __JSON char *json, const char *str, const char *str_end)
 		return 1;
 }
 
-/**
- * Compares a JSON string against a C string constant.
- * @param json (optional) JSON text
- * @param str  UTF-8
- * @param strsz length of @a str in bytes
- * @return -1 if @a json < @a str, or
- *          0 if @a json = @a str, or
- *          1 if @a json > @a str.
- */
 __PUBLIC
 int
-json_strcmpn(const __JSON char *json, const char *str, size_t strsz)
+json_strcmpn(const __JSON char *json, const char *cstr, size_t cstrsz)
 {
-	const char *str_end = str + strsz;
+	const char *cstr_end = cstr + cstrsz;
 
 	skip_white(&json);
 	if (!json || !*json)
 		return -1;
 	if (*json == '\'' || *json == '"')
-		return string_cmp(json, str, str_end);
+		return string_cmp(json, cstr, cstr_end);
 	if (is_delimiter(*json) || word_strcmp(json, json_null) == 0)
 		return -1;
-	return word_strcmpn(json, str, strsz);
+	return word_strcmpn(json, cstr, cstrsz);
 }
 
 __PUBLIC
 int
-json_strcmp(const __JSON char *json, const char *str)
+json_strcmp(const __JSON char *json, const char *cstr)
 {
-	if (str)
-		return json_strcmpn(json, str, strlen(str));
+	if (cstr)
+		return json_strcmpn(json, cstr, strlen(cstr));
 
-	/* Comparing against str NULL */
 	if (!json)
 		return 0;
 	skip_white(&json);

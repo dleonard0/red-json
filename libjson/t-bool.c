@@ -25,6 +25,7 @@ main()
 	assert_errno(!json_as_bool("0.0"), EINVAL);
 	assert_errno(!json_as_bool(".0"), EINVAL);
 	assert_errno(!json_as_bool("\"\""), EINVAL);
+	assert_errno(!json_as_bool("''"), EINVAL);
 	assert_errno(!json_as_bool("NaN"), EINVAL); /* depends on strtod */
 
 	assert_errno(json_as_bool("[ ]"), EINVAL);

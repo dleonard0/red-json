@@ -65,11 +65,17 @@ main()
 	assert_errno(!json_select(scores, "[%d]", -4), ENOENT);/*not EINVAL!*/
 
 	/* Invalid paths */
-	assert_errno(!json_select(input_A, "%"), EINVAL);
 	assert_errno(!json_select(input_A, "a%s", ""), EINVAL);
 	assert_errno(!json_select(input_A, "[%s]", ""), EINVAL);
 	assert_errno(!json_select(input_A, "[a]"), EINVAL);
 	assert_errno(!json_select(input_A, "[]"), EINVAL);
+	{
+		/* Doing this to defeat the compiler's format check warning */
+		char fmt[] = "%%";
+		fmt[1] = '\0';
+		assert_errno(!json_select(input_A, fmt), EINVAL);
+	}
+
 
 	/* Invalid source appears as ENOENT */
 	assert_errno(!json_select(",", "x"), ENOENT);

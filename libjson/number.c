@@ -3,12 +3,14 @@
 
 #include "libjson_private.h"
 
+/** Tests if a character is an ASCII digit */
 static int
 is_digit(char ch)
 {
 	return ch >= '0' && ch <= '9';
 }
 
+__PUBLIC
 double
 json_as_double(const char *json)
 {
@@ -51,6 +53,7 @@ json_as_double(const char *json)
 	return number;
 }
 
+__PUBLIC
 long
 json_as_long(const char *json)
 {
@@ -97,6 +100,7 @@ json_as_long(const char *json)
 	return fp; /* truncates */
 }
 
+__PUBLIC
 int
 json_as_int(const char *json)
 {

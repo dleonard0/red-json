@@ -8,7 +8,8 @@
 #define MAX_NEST 32768
 
 /**
- * Skip the pointer over insignificant whitespace.
+ * Skips the JSON pointer over insignificant whitespace.
+ *
  * @param json_ptr  pointer to (optional) JSON text
  **/
 void
@@ -21,12 +22,13 @@ skip_white(const __JSON char **json_ptr)
 }
 
 /**
- * Skip the pointer over an expeectd character and its following whitespace.
- * But it has no effect if the character is not there.
+ * Skips the JSON pointer over an expected character and following whitespace.
+ * This has no effect if the character is not there.
  *
  * @param json_ptr  pointer to (optional) JSON text
  * @param ch        expected character to skip
- * @return 0 iff no skipping occurred (@a ch was not the next character).
+ *
+ * @retval 0 No skipping occurred, i.e @a ch was not the next character.
  */
 int
 can_skip_delim(const __JSON char **json_ptr, char ch)
@@ -40,13 +42,14 @@ can_skip_delim(const __JSON char **json_ptr, char ch)
 }
 
 /**
- * Skip an unquoted word or a quoted JSON string,
- * and its trailing whitespace.
- * That means it will skip booleans, numbers, strings, and null.
+ * Skips an unquoted word or a quoted string, then its trailing whitespace.
+ *
+ * This function will skip booleans, numbers, strings, and null.
  * However, it will <em>not</em> skip structural characters [] {} : ,
  *
  * @param json_ptr  pointer to (optional) JSON text
- * @return 0 iff no skipping occurred.
+ *
+ * @retval 0 No skipping occurred.
  */
 static int
 skip_word_or_string(const __JSON char **json_ptr)
@@ -82,15 +85,17 @@ skip_word_or_string(const __JSON char **json_ptr)
 
 /**
  * Skips over a JSON value and its trailing whitespace.
+ *
  * This skips numbers, strings, arrays, objects, words, quoted strings, etc.
  *
  * This function is non-recursive so that it can handle nested arrays and
  * objects up to a depth of 32768.
  *
  * @param json_ptr  pointer to (optional) JSON text (not whitespace!)
- * @returns 0 if nothing was skipped,
- *          1 if a value was skipped (#EINVAL), or
- *          0 if a depth limit was reached (#ENOMEM)
+ *
+ * @retval 1 A value was skipped.
+ * @retval 0 [EINVAL] Nothing was skipped.
+ * @retval 0 [ENOMEM] The nesting depth limit was reached.
  */
 int
 skip_value(const __JSON char **json_ptr)

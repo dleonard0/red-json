@@ -143,6 +143,7 @@ IMPL_DEFAULT_SELECT(json_default_select_double, double, json_as_double)
 IMPL_DEFAULT_SELECT(json_default_select_array, const __JSON_ARRAYI char *, json_as_array)
 IMPL_DEFAULT_SELECT(json_default_select_object, const __JSON_OBJECTI char *, json_as_object)
 
+__PUBLIC
 char *
 json_default_select_strdup(const char *default_, const __JSON char *json,
 	const char *path, ...)
