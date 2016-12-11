@@ -81,5 +81,10 @@ main()
 	assert_errno(!json_select(",", "x"), ENOENT);
 	assert_errno(!json_select(",", "[0]"), ENOENT);
 
+	/* Invalid JSON behaviour */
+	assert_errno(!json_select("{\"a\":1,:,\"x\":0}", "x"), EINVAL);
+	assert_errno(!json_select("[0,1,2,:]", "[4]"), EINVAL);
+
+
 	return 0;
 }

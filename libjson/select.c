@@ -52,10 +52,13 @@ json_selectv(const __JSON char *json, const char *path, va_list ap)
 			ji = json_as_array(json);
 			if (!ji)
 				goto enoent;
+			errno = 0;
 			while ((json = json_array_next(&ji))) {
 				if (!index--)
 					break;
 			}
+			if (errno)
+				return NULL;
 			break;
 		default:
 			/* First components simulate a leading '.' */
@@ -90,10 +93,13 @@ json_selectv(const __JSON char *json, const char *path, va_list ap)
 			ji = json_as_object(json);
 			if (!ji)
 				goto enoent;
+			errno = 0;
 			while ((json = json_object_next(&ji, &cur_key))) {
 				if (json_strcmpn(cur_key, key, keylen) == 0)
 					break;
 			}
+			if (errno)
+				return NULL;
 			break;
 		}
 		first = 0;
