@@ -41,7 +41,7 @@ unsigned char char_to_base64[256] = {
  *
  * @retval 1 success
  */
-int
+static int
 shift_hex(__JSON char ch, char *out)
 {
 	char value;
