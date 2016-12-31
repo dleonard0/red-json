@@ -10,7 +10,7 @@ except for the differences noted below.
 When testing a pointer for NULL, rely on conversion to boolean.
 That is, use `if (p)` or `if (!p)`.
 
-`sizeof` is a keyword and should be followed by a space.
+`sizeof` is a keyword and is followed by a space.
 Do not parenthesize its argument unless it is a type,
 or a complicated expression.
 
@@ -44,14 +44,18 @@ Each test program should be a simple `main()` function that sets up
 the functions under test, and uses `assert()` for every expected outcome.
 
 Keep test programs simple.
-They should not need arguments.
+They do not need arguments.
 They should not over-test.
 
-Avoid too many levels of preprocessor macros.
+Avoid introducing abstractions in tests.
 Macros are handy for exercising multiple aspects of a function, but
 because test programs are used for debugging ("Why did my change over *here*
 cause that test to fail over *there*?") it should be clear how to
 run the test in a debugger and step into the failure.
+
+Use AAA style (Arrange, Act, Assert), one per block.
+Begin each AAA block with a single, assertive comment sentence
+announcing what is being tested.
 
 # Comment style
 

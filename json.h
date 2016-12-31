@@ -4,164 +4,19 @@
 /**
  * @mainpage Red JSON parser
  *
- * @section intro Introduction
+ * This is a lightweight, just-in-time parser for JSON (RFC 7159).
  *
- * This is a lightweight, just-in-time parser for JSON RFC 7159.
- * Instead of converting all the JSON input into in-memory data structure,
+ * Instead of converting all the JSON input into in-memory data structures,
  * you keep the source input as-is, and use the functions below to seek
  * around, converting the JSON values to C as you need them.
  *
- * JSON input text is always NUL-terminated UTF-8, or NULL.
+ * JSON input text is always a pointer to NUL-terminated UTF-8, or NULL.
  * NULL is always safe and treated as if it were an empty JSON input.
  *
- * Interior values within structured values are represented by pointers
- * into the JSON text where their encoding begins. This is true for both
- * simple and structured sub-values.
+ * JSON values interior to arrays and objects are represented by pointers
+ * to where the value encoding begins.
  *
- *
- * @section types  Simple type conversion
- *
- * Converting any JSON value into a simple C type returns a "best-effort"
- * result, and @c errno will indicate any conversion difficulty. For example,
- * converting JSON number <code>1e100</code> to @c int will clamp the value
- * to INT_MAX and indicate ERANGE.
- *
- * If you need to know the type of a JSON value before converting, there is
- * a fast type classifier #json_type() that guesses without fully checking
- * whether the input is well-formed. Even when the input isn't well-formed,
- * the converter functions will still try to return something useful and
- * indicate EINVAL.
- *
- * @see #json_as_int(),
- *      #json_as_long(),
- *      #json_as_double(),
- *      #json_as_bool(),
- *      #json_is_null(),
- *      #json_type()
- *
- *
- * @section Strings
- *
- * Normally, a string conversion error (EINVAL) occurs when
- * <ul><li>the input JSON contains invalid or overlong UTF-8 sequences, or
- *     <li>the output UTF-8 C string would contain NUL or a
- *         code point not permitted by RFC 3629.
- * </ul>
- *
- * However, "unsafe" variants of the string conversion functions are provided
- * that instead translate problematic input bytes into U+DC00..U+DCFF.
- * Converting these code points back to JSON will losslessly preserve the
- * original bytes.
- * If you need to pass binary data with JSON, you may prefer to use the
- * BASE64 functions.
- *
- * Most string conversions requires you to supply the output buffer.
- * If you supply a zero-sized buffer, the conversion functions will return
- * the minimum size of buffer to use for that input.
- * Functions ending with "_strdup" will do that step for you and
- * return heap storage filled with the translated string.
- *
- * If all you want to do is compare a JSON string with a UTF-8 C string,
- * you can use #json_strcmp() which performs the translation and comparison
- * in one step without requiring an output buffer or conversion step.
- *
- * @see #json_as_str(),          #json_string_from_str(),
- *      #json_as_unsafe_str(),   #json_string_from_unsafe_str(),
- *      #json_as_base64(),       #json_base64_from_bytes(),
- *      #json_as_strdup(),
- *      #json_as_unsafe_strdup(),
- *      #json_strcmp(),
- *      #json_strcmpn()
- *
- *
- * @section Selection
- *
- * 'Selection' is seeking within a nest of arrays and objects to access
- * a particular value. 'Selectors' are expessions modeled after
- * Javascript syntax.
- *
- * For example, the selction path "foo[1].bar" applied to the JSON value below
- * will select the value 7.
- * <pre>
- *        {
- *          "foo": [
- *                   null,
- *                   { "bar": 7 }
- *                 ]
- *        }
- * </pre>
- *
- * Selectors can also use %d or %s to refer to variadic arguments.
- *
- * @see #json_select(),
- *      #json_selectv(),
- *      #json_select_int(),     #json_default_select_int(),
- *      #json_select_bool(),    #json_default_select_bool(),
- *      #json_select_double(),  #json_default_select_double(),
- *      #json_select_array(),   #json_default_select_array(),
- *      #json_select_object(),  #json_default_select_object(),
- *      #json_select_strdup(),  #json_default_select_strdup()
- *
- *
- * @section Iteration
- *
- * 'Iteration' is accessing elements of an array (or members of objects)
- * in sequence. A simple pointer ('iterator') is used to keep track of the
- * position within the sequence.
- *
- * First, an array or object iterator is obtained, then the '_next'
- * function is applied repeatedly to either get a pointer to the next value,
- * or a NULL indication that the iteration is exhausted.
- *
- * @see #json_as_array(),       #json_as_object(),
- *      #json_array_next(),     #json_object_next()
- *
- *
- * @section Spans
- *
- * It can be useful sometimes to have access to an entire sub-value
- * without interpretation. For example, you may be wrapping a JSON
- * query within another. The 'span' of a value is the number of bytes
- * it occupies within the JSON input text.
- *
- * @see #json_span()
- *
- *
- * @section limits Extensions and limitations
- *
- * The parsers accept the following extensions to JSON (RFC 7159):
- * <ul>
- * <li> Extra commas may be present at the end of arrays and objects;
- * <li> Unnecessary escapes inside quoted strings are converted to U+DC5C;
- * <li> Strings may be single-quoted. Inside single quoted (') strings, the
- *      double quote (") need not be escaped (\\"), but single quotes must
- *      be (\\').
- * <li> Bare strings, called "words" and matching <code>[^[]{},:" \\t\\n\\r]+</code>
- *      are accepted where quoted strings are expected.
- *      Backslashes within words are treated literally.
- * <li> UTF-8 input that does not conform to RFC3629 is accepted by some
- *      functions. They are marked "unsafe".
- * </ul>
- *
- * The parser has the following limits:
- * <ul>
- * <li>Only UTF-8 is understood (not UTF-16 other encodings)
- * <li>Nesting of arrays and objects is limited to 32768, combined.
- * </ul>
- *
- *
- * @section generate Generating JSON
- *
- * You can use @c snprintf() to generate most of your own JSON, assisted with
- * the following functions and string constants.
- *
- * @see #json_string_from_str(),
- *      #json_string_from_unsafe_str(),
- *      #json_base64_from_bytes(),
- *      #json_true,
- *      #json_false,
- *      #json_null
- *
+ * See README.md for more information.
  *
  * @author David Leonard; released into Public Domain 2016
  */
@@ -179,7 +34,7 @@
 /**
  * Selects an element within a JSON structure.
  *
- * For example, the path "[1].name" will select the value "Fred" from
+ * For example, the selection path "[1].name" selects the * value "Fred" from
  * <code>[{"name":"Tim", "age":28},{"name":"Fred", "age":26}]</code>.
  *
  * A selection path is any sequence of <code>[<i>index</i>]</code> or
@@ -189,11 +44,11 @@
  * expect parameteric arguments of type <code>unsigned int</code>
  * or <code>const char *</code>, respectively).
  *
- * There are some limitations on object key path components:
+ * There are some limitations on object keys in path components:
  * <ul>
- *     <li>literal <code>.<i>key</i></code> must not contain '.' or '['
+ *     <li>a literal <code>.<i>key</i></code> must not contain '.' or '['
  *         characters, and occurrences of '%' must be doubled.
- *     <li>literal keys and key parameter strings must be encoded in
+ *     <li>literal keys and vararg key parameters must be encoded in
  *         shortest-form UTF-8 because #json_strcmp() is used to compare them.
  * </ul>
  *
@@ -356,7 +211,7 @@ enum json_type json_type(const __JSON char *json);
  * JSON text.
  *
  * The span can be used to copy out and re-use sub-structures without
- * a conversion step.
+ * the need for a conversion step.
  *
  * The span will include leading whitespace, but not trailing whitespace.
  *

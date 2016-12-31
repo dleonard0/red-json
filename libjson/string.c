@@ -6,11 +6,15 @@
 #include "libjson_private.h"
 #include "utf8.h"
 
-/** Converts a hexadecimal digit into its integer value. */
+/** Converts a hexadecimal ASCII digit into its integer value. */
 static unsigned
 xdigit_as_int(char ch)
 {
-	/* assert(isxdigit(ch)); */
+	/*
+	 *   0x30 .. 0x39   ->    0 ..  9
+	 *   0x41 .. 0x46   ->   10 .. 15
+	 *   0x61 .. 0x66   ->   10 .. 15
+	 */
 	return (ch & 0xf) + (ch & 0x10 ? 0 : 9);
 }
 

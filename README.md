@@ -1,15 +1,15 @@
 ﻿
 # Red JSON
 
-A just-in-time, helpful JSON parser for C.
+A just-in-time JSON parser for C.
 
-* No pre-parse. You keep the JSON text in memory until you need the values.
-* Seek or iterate a `char *` pointer over nested JSON objects and arrays
-  without converting.
-* Converter functions turn a JSON value into a safe or "best-effort" C value.
-  If you ignore errors, the returned value is probably sensible.
-* Functions are`NULL`-tolerant.
-  NULL is treated the same as malformed or empty JSON input.
+* No pre-parse; no intermediate types.
+* Iterate a `char *` pointer over JSON objects and arrays.
+* Seek into structures using "selector" patterns, e.g. `foo[1].bar`.
+* Input safety: `NULL` treated the same as empty/malformed JSON.
+* Converter functions turn JSON values into C.
+  On mismatch/error they set `errno`
+  but still return a best-effort or "sensible" value.
 
 ## Examples
 
@@ -18,6 +18,7 @@ Let's convert some numbers:
 ```c
     double x = json_as_double("1.24e8");
     double n = json_as_double(NULL); /* NAN, errno==EINVAL */
+    int i = json_as_int("9.26e1"); /* 92 */
 ```
 
 Iterate over an array:
@@ -60,7 +61,9 @@ Search within a structure using a Javascript-like selector:
    }
 ```
 
-Lets print some UTF-8-safe, bounded strings:
+Did you notice the `%d` in the path?
+
+Let's print safe, UTF-8 strings:
 
 ```c
     char buf[1024];
@@ -70,7 +73,7 @@ Lets print some UTF-8-safe, bounded strings:
         printf("The cook's name is %s\n", buf);
 ```
 
-Although, if you prefer the heap:
+Or get your strings on the heap:
 
 ```c
     char *cuisine = json_select_strdup(cook, "cuisine");
@@ -80,15 +83,14 @@ Although, if you prefer the heap:
     }
 ```
 
-But, really, most of the time you just want to compare a string's content:
+Sometimes you just want to compare a string:
 
 ```c
-    const char *jstr = json_select(cook, "cuisine");
-    if (json_strcmp(jstr, "Swedish-Maori Fusion") == 0)
+    if (json_strcmp(json_select(cook, "cuisine"), "Swedish-Maori") == 0)
         raise(eyebrows);
 ```
 
-Or pull BASE-64 content:
+Extract BASE-64 content:
 
 ```c
     int buflen = json_as_base64("\"SQNDUDQzNw==\"", buf, sizeof buf);
@@ -98,17 +100,18 @@ Or pull BASE-64 content:
 
 ## General usage
 
-Your JSON input text should be NUL-terminated and all in memory.
+Make sure your JSON input text is NUL-terminated.
 
-Any pointer into the JSON text will represent
-just the JSON value to which it points, structured or not,
-and ignorant of any value that comes after it.
+Any `const char *` pointer into the JSON text
+can be used to represent
+the value to which it points, structured or not.
 
 For example, a pointer to the `[` character
-in the JSON text `[10,2,3]`
-will represent the whole array as a value,
-while a pointer to the `1` will represent just the number value 10.
-Leading whitespace is always acceptable.
+in `[10,2,3]`
+will represent the entire array,
+while a pointer to the `1` will represent just the value 10.
+
+Leading whitespace is acceptable.
 
 ### Converters
 
@@ -122,21 +125,23 @@ Leading whitespace is always acceptable.
 
 Converter functions translate JSON into C values in a "best effort" or
 unsuprising way.
-First they skip leading whitespace, then they try to convert
-the next complete JSON value that they encounter.
+First they skip leading whitespace, then they convert
+the next complete JSON value to the indicated C type.
 
-Where there is no clear conversion from the JSON type to the desired C type,
-a sensible value is returned,
-accompanied by setting `errno` to `EINVAL`.
-When converters would exceed an output type limit, they will return
-an approximate or clamped value, and set `errno` to `ERANGE`.
+When there is no clear conversion path
+from the JSON value to the desired C type
+(for example converting an array into an integer),
+then a "sensible" value (usually zero) is returned
+and `errno` is set (usually to `EINVAL`).
 
-#### Return values that may mean error
+When a conversion would exceed a C type limit, then the functions will
+return a clamped or reduced-precision result, and set `errno` to `ERANGE`.
 
-Follows are the values that converter functions will return to indicate
-a possible error.
+#### Errors
 
-| If you call<br>this converter | and it<br>returned | and set<br>`errno` to | then it means<br>that the|
+Detect strict conversion errors using the following table.
+
+| If you call <br>this converter | and it <br>returned | and set <br>`errno` to | then it means <br>that the |
 |------------------|-----------|--------|-------------------------------|
 |`json_as_array()` |`NULL`     |`EINVAL`|input is not an array `[...]`	|
 |`json_as_object()`|`NULL`     |`EINVAL`|input is not an object `{...}`	|
@@ -161,14 +166,15 @@ a possible error.
 |`json_span()`     |0          |`EINVAL`|input is not a JSON value	|
 |`json_span()`     |0          |`ENOMEM`|input is too deeply nested	|
 
-* ¹ NAN should be tested with the `isnan()` macro from `<math.h>`
+* ¹ NAN result should be tested using the `isnan()` macro from `<math.h>`
 * ² This value may be returned with `errno` unchanged.
-    To detect this case, you will need to set `errno` to 0 before the call.
+    To detect this, set `errno` to 0 before the call.
 
-All converters will treat `NULL` pointer input as though it were
-a malformed or empty input.
+All converters will treat `NULL` JSON as though it were empty input.
 
 #### Conversion between types
+
+Given a "wrong" input type, the converter functions still give a reliable result:
 
 |JSON input|`json_as_`<br>`bool`|`json_as_`<br>`int`/`long`|`json_as_`<br>`double`|`json_as_`<br>`str`|`json_as_`<br>`array`|`json_as_`<br>`object`|`json_is_`<br>`null`|
 |--------------|----------|-------|-------|----------|----|----|---|
@@ -184,54 +190,47 @@ a malformed or empty input.
 * ⁱ sets `errno` to `EINVAL`
 * ʳ may set `errno` to `ERANGE`
 
-If a converted value would exceed a C type limit, the value will be clamped
-(e.g. to `HUGE_VAL` or `INT_MAX`) and `errno` will be set to `ERANGE` or
-`ENOMEM` depending on the function.
+`json_as_bool()` implements the same "falsey" rules as Javascript.
 
-## String conversion and safety
+You can also call `json_type()` to guess the type of a value from its
+first non-whitespace character.
+This is very fast.
 
-Safe UTF-8 strings contain only shortest-length
-encodings of unicode characters from the set
+### String conversion
+
+    size_t json_as_str(const char *json, void *buf, size_t bufsz);
+    char * json_as_strdup(const char *json);
+
+These functions generate "safe" UTF-8 C strings,
+which are shortest encodings of unicode characters from the set
 { U+1 … U+D7FF, U+E000 … U+10FFFF }.
-This is the same as RFC3629, except excluding NUL (U+0).
+This meets RFC 3629, with the single exception of prohibiting NUL (U+0).
 
-The functions `json_as_str()` and `json_as_strdup()` will refuse to
-generate unsafe UTF-8 output C strings by signalling `EINVAL`.
+An attempt to generate an unsafe string will signal `EINVAL` and
+these functions returns an empty string.
 
-If you need to receive malformed UTF-8 strings, see:
+If you need to work with unsafe or malformed JSON strings, use:
 
     size_t json_as_unsafe_str(const char *json, void *buf, size_t bufsz);
     char * json_as_unsafe_strdup(const char *json);
 
-## More API
+These functions map malformed and difficult input bytes into codepoints from
+{ U+DC00 … U+DCFF }. The mapping can be reversed by
+`json_string_from_unsafe_str()`.
+
+To extract BASE-64 binary, use:
 
     int    json_as_base64(const char *json, void *buf, size_t bufsz);
 
-Structure iterators
+A non-string input to any of these functions will signal `EINVAL`
+and a best-effort string will be returned.
 
-    const char *json_as_array(const char *json);
-    const char *json_array_next(const char **index_p);
-    const char *json_as_object(const char *json);
-    const char *json_object_next(const char **index_p, const char **key_ret);
+String parsing functions ending with `_str()` and `json_as_base64()`
+require you to provide a buffer. If you want to allocate exactly
+the right sized buffer, pass a size of `0`, and the mimimum size is returned.
 
-Structure seeking
+## Generating JSON
 
-    const char *json_select(const char *json, const char *path, ...);
-    const char *json_selectv(const char *json, const char *path, va_list ap);
-
-Misc
-
-    enum json_type json_type(const char *json);
-    size_t json_span(const char *json);
-
-    int json_strcmp(const char *json, const char *cstr);
-    int json_strcmpn(const char *json, const char *cstr, size_t cstrsz);
-
-    extern const char json_true[];   /* "true" */
-    extern const char json_false[];  /* "false" */
-    extern const char json_null[];   /* "null" */
-
-Generators
 
     size_t json_string_from_str(const char *src,
                                 char *dst, size_t dstsz);
@@ -241,6 +240,38 @@ Generators
                                 char *dst, size_t dstsz);
     size_t json_string_from_unsafe_strn(const char *src, int srclen,
                                 char *dst, size_t dstsz);
+    int json_base64_from_bytes(const void *src, size_t srcsz,
+                                char *dst, size_t dstsz);
+
+    extern const char json_true[];   /* "true" */
+    extern const char json_false[];  /* "false" */
+    extern const char json_null[];   /* "null" */
+
+## More
+
+See [json.h](json.h) for details.
+
+Structure iterators
+
+    const char *json_as_array(const char *json);
+    const char *json_array_next(const char **index_p);
+    const char *json_as_object(const char *json);
+    const char *json_object_next(const char **index_p, const char **key_ret);
+
+Structure navigation
+
+    const char *json_select(const char *json, const char *path, ...);
+    const char *json_selectv(const char *json, const char *path, va_list ap);
+
+Miscellaneous
+
+    enum json_type json_type(const char *json);
+    size_t json_span(const char *json);
+
+    int json_strcmp(const char *json, const char *cstr);
+    int json_strcmpn(const char *json, const char *cstr, size_t cstrsz);
+
+Generating JSON strings
 
 
 ## Standards and extensions
@@ -249,16 +280,17 @@ This parser implements RFC 7159 with the following extensions:
 
 * Extra commas may be present at the end of arrays and objects
 * Strings may be also be single-quoted.
-  Inside a single quoted `'` strings, the double quote `"` need not be
-  escaped (`\"`), but single quotes must be (`\'`).
+  Inside a single-quoted string, the double quote need not be
+  escaped, but single quotes must.
 * Unquoted strings called 'words' (matching `[^[]{},:" \t\n\r]+`) are
   accepted where strings are expected.
-  They are treated like quoted strings, except that backslash-escapes are
-  ignored. Words may contin single quotes, but cannot begin with one.
+  Words are treated like quoted strings, except that backslash is not
+  treated specially.
+  Words may contain single quotes, but cannot begin with one.
 
-### Parser limits
+### Parser limitations
 
-* UTF-8 only (no UTF-16 nor UTF-32)
-* Nested arrays and objects are limited to a combined depth of 32768 levels
-
+* No support for streaming
+* UTF-8 input only
+* Nested arrays and objects limited to a combined depth of 32768
 
