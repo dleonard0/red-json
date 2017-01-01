@@ -5,7 +5,7 @@
 #include "t-assert.h"
 
 /**
- * Returns a nested array of the given depth.
+ * Returns a nested JSON array of the given depth.
  * <code>[[...[[value]]...]]</code>
  */
 const char *
@@ -15,6 +15,7 @@ nested_array(unsigned depth, const char *value)
 	unsigned i;
 	char *j = json;
 
+	/* static buffer overflow check */
 	assert(depth * 2 + strlen(value) + 1 <= sizeof json);
 
 	for (i = 0; i < depth; i++) *j++ = '[';
@@ -26,7 +27,7 @@ nested_array(unsigned depth, const char *value)
 }
 
 /**
- * Returns a nested array of the given depth.
+ * Returns a nested JSON object of the given depth.
  * <code>{key:{key:...{key:value}...}}</code>
  */
 const char *
@@ -36,6 +37,7 @@ nested_object(unsigned depth, const char *key, const char *value)
 	unsigned i;
 	char *j = json;
 
+	/* static buffer overflow check */
 	assert(depth * (3 + strlen(key)) + strlen(value) + 1 <= sizeof json);
 
 	for (i = 0; i < depth; i++) {
@@ -54,9 +56,16 @@ nested_object(unsigned depth, const char *key, const char *value)
 int
 main()
 {
-	assert(json_span(NULL) == 0);
-	assert(json_span("") == 0);
+	/* Spans of malformed JSON return 0 */
+	assert_errno(json_span(NULL) == 0, EINVAL);
+	assert_errno(json_span("") == 0, EINVAL);
+	assert_errno(json_span(" ") == 0, EINVAL);
+	assert_errno(json_span(",") == 0, EINVAL);
+	assert_errno(json_span(":") == 0, EINVAL);
+	assert_errno(json_span("]") == 0, EINVAL);
+	assert_errno(json_span("}") == 0, EINVAL);
 
+	/* Spans of well-formed JSON are correctly measured up to a delimiter */
 	assert(json_span("0") == 1);
 	assert(json_span("0:") == 1);
 	assert(json_span("0 ,") == 2);
@@ -68,12 +77,14 @@ main()
 	assert(json_span("foo bar") == 4);
 	assert(json_span(" \"foo\\\"bar\",") == 11);
 
+	/* Deeply nested arrays are correct measured, or return ENOMEM */
 	assert(json_span(nested_array(8192, "0")));
 	assert(json_span(nested_array(32767, "0")));
 	assert(json_span(nested_array(32768, "0")));
 	assert_errno(!json_span(nested_array(32769, "0")), ENOMEM);
 	assert_errno(!json_span(nested_array(32770, "0")), ENOMEM);
 
+	/* Deeply nested objects are correct measured, or return ENOMEM */
 	assert(json_span(nested_object(8192, "\"a\"", "0")));
 	assert(json_span(nested_object(32767, "\"a\"", "0")));
 	assert(json_span(nested_object(32768, "\"a\"", "0")));

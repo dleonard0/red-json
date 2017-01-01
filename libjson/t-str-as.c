@@ -20,18 +20,20 @@ static char buf[1024]; /* shared across tests */
 
 /** Asserts that function @a FN treats @a bad_json as invalid input */
 #define _assert_fn_inval(FN, bad_json) do {                                \
-	/* Invalid inputs always return 0/EINVAL */                        \
+	/* FN(bad_json,,0) return 0/EINVAL (bufsz request) */              \
         errno = 0;                                                         \
         assert_inteq(FN(bad_json, NULL, 0), 0);                            \
         assert_inteq(errno, EINVAL);                                       \
                                                                            \
+        /* FN(bad_json) returns 0/EINVAL with a reasonable buffer */       \
         errno = 0;                                                         \
         memset(buf, '$', sizeof buf);                                      \
         assert_inteq(FN(bad_json, buf, sizeof buf), 0);                    \
         assert_inteq(errno, EINVAL);                                       \
-	/* Invalid inputs still terminate the output buffer */             \
+	/* FN(bad_json) still terminated the output buffer */              \
         assert_chareq(buf[0], '\0');                                       \
                                                                            \
+        /* FN(bad_json) returns 0/EINVAL with a 1-byte buffer */           \
         errno = 0;                                                         \
         memset(buf, '#', sizeof buf);                                      \
         assert_inteq(FN(bad_json, buf, 1), 0);                             \
@@ -43,37 +45,38 @@ static char buf[1024]; /* shared across tests */
 /** Asserts that function @a FN converts @a json into @a expected */
 #define _assert_fn_good(FN, json, expected) do {                           \
         const char *_typecheck __attribute__((unused));                    \
-        _typecheck = (expected);                                           \
+        _typecheck = (expected); /* catch type errors in this test */      \
         assert(sizeof expected <  sizeof buf);                             \
                                                                            \
-        /* Size check mode should match expected's size (incl NUL) */      \
+        /* FN(json,,0) bufsz request matches expected size (incl NUL) */   \
         assert_inteq(FN(json, NULL, 0), sizeof expected);                  \
                                                                            \
-        /* Convert with an oversized output buffer */                      \
+        /* FN(json) works with an oversized output buffer */               \
         memset(buf, '$', sizeof buf);                                      \
         assert_inteq(FN(json, buf, sizeof buf), sizeof expected);          \
         assert_streq(buf, expected);                                       \
                                                                            \
-        /* Convert with a just-right-sized output buffer */                \
+        /* FN(json) works with a just-right-sized output buffer */         \
         memset(buf, '$', sizeof buf);                                      \
         assert_inteq(FN(json, buf, sizeof expected), sizeof expected);     \
         assert_streq(buf, expected);                                       \
         assert_chareq(buf[sizeof expected], '$');                          \
                                                                            \
 	if ((expected)[0]) {						   \
-            /* Convert with a too-small output buffer */                   \
+            /* FN(json) fails with a just-too-small output buffer */       \
             memset(buf, '$', sizeof buf);                                  \
             errno = 0;                                                     \
             assert_inteq(FN(json, buf, 1), 0);                             \
             assert_inteq(errno, ENOMEM);                                   \
-            /* It should still NUL-terminate the output */                 \
+            /* It should still have NUL-terminate the output */            \
             assert_chareq(buf[0], '\0');                                   \
             assert_chareq(buf[1], '$');                                    \
         }                                                                  \
     } while (0)
 
 
-/** Asserts that @a bad_json is treated as invalid by
+/** Asserts that @a bad_json is correctly treated as invalid JSON
+*   by these functions:
  *   #json_as_str()
  *   #json_as_unsafe_str()
  *   #json_as_strdup()
@@ -86,7 +89,8 @@ static char buf[1024]; /* shared across tests */
 	assert_errno(json_as_unsafe_strdup(bad_json) == NULL, EINVAL);	   \
     } while (0)
 
-/** Asserts that @a json is converted to @a expected by
+/** Asserts that @a json is correctly converted to @a expected by
+*   these functions:
  *   #json_as_str()
  *   #json_as_unsafe_str()
  *   #json_as_strdup()
@@ -102,10 +106,10 @@ static char buf[1024]; /* shared across tests */
 	free(_p);							   \
     } while (0)
 
-/** Asserts that @a unsafe_json is treated as invalid by
+/** Asserts that @a unsafe_json is treated as invalid by:
  *   #json_as_str()
  *   #json_as_strdup()
- *  and that it is accepted and converted into @a expected by
+ *  and that it is accepted and converted into @a expected by:
  *   #json_as_unsafe_str()
  *   #json_as_unsafe_strdup()
  */
@@ -128,6 +132,8 @@ main()
 	 *   - good     .. good UTF-8 output, adequately formed input
 	 *   - unsafe   .. rejected only because they generate bad UTF-8
 	 *   - invalid  .. inputs so bad they have to be rejected
+	 * and use the macros above to exercise each function over
+	 * each of those strings.
 	 */
 
 	/* Smoke test */
