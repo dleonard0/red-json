@@ -284,16 +284,14 @@ Miscellaneous
 This parser implements RFC 7159 with the following extensions:
 
 * Extra commas may be present at the end of arrays and objects
-* Strings may be also be single-quoted.
-  Inside a single-quoted string, the double quote need not be
-  escaped, but single quotes must.
-* Unquoted strings called 'words' (matching `[^[]{},:" \t\n\r]+`) are
+* Single-quoted strings are supported.
+* Unquoted strings called *words* matching `[^[]{},:" \t\n\r]+` are
   accepted where strings are expected.
   Words are treated like quoted strings, except that backslash is not
   treated specially.
   Words may contain single quotes, but cannot begin with one.
-  This means the input `{foo:bar}` will be treated the same as
-  `{"foo":"bar"}`.
+  This means the input `{foo:won't}` will be treated as
+  `{"foo":"won't"}`.
 
 ### Limitations
 
