@@ -361,12 +361,11 @@ json_strcmpn(const __JSON char *json, const char *cstr, size_t cstrsz)
 	const char *cstr_end = cstr + cstrsz;
 
 	skip_white(&json);
-	if (!json || !*json)
-		return -1;
-	if (*json == '\'' || *json == '"')
+	if (json && (*json == '\'' || *json == '"'))
 		return string_cmp(json, cstr, cstr_end);
-	if (is_delimiter(*json) || word_strcmp(json, json_null) == 0)
-		return -1;
+	errno = EINVAL;
+	if (!json || is_delimiter(*json))
+		return cstrsz ? -1 : 0;
 	return word_strcmpn(json, cstr, cstrsz);
 }
 
@@ -374,19 +373,7 @@ __PUBLIC
 int
 json_strcmp(const __JSON char *json, const char *cstr)
 {
-	if (cstr)
-		return json_strcmpn(json, cstr, strlen(cstr));
-
-	if (!json)
-		return 0;
-	skip_white(&json);
-	if (*json == '"' || *json == '\'')
-		return 1;
-	if (!*json || is_delimiter(*json))
-		return 0;
-	if (word_strcmp(json, json_null) == 0)
-		return 0;
-	return 1;
+	return json_strcmpn(json, cstr, strlen(cstr));
 }
 
 /**

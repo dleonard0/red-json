@@ -607,27 +607,33 @@ size_t json_string_from_unsafe_strn(const char *src, int srclen,
 /**
  * Compares a JSON value with a UTF-8 C string.
  *
- * This is a convenience function analogous to @c strcmp() that
- * compares a UTF-8 C string with a JSON value that is usually
- * a JSON quoted string.
+ * This function is equivalent to converting the first argument with
+ * #json_as_unsafe_str(), and then comparing that to the second argument
+ * with @c strcmp().
  *
- * This function will act as though @a json had been converted to
- * UTF-8 string by #json_as_str(), and then compared to the UTF-8 in
- * @a cstr. UTF-8 validity of @a cstr is not checked.
- * (It is a property of UTF-8 that bytewise comparison of valid UTF-8
- * strings yields the same result as codepoint-wise comparison.)
+ * Note that UTF-8 comparison by @c strcmp() is equivalent to a
+ * per-unicode-character comparison thanks to a nifty property of UTF-8.
  *
- * @note The JSON value <code>null</code> will compare the same as the
- *       string <code>"null"</code>.
- * @see #json_is_null(), #json_strcmpn()
+ * <ul>
+ * <li>JSON numbers, booleans and null will comared equal to
+ *     C strings containing the same JSON representation. e.g.
+ *     The JSON value <code>null</code> will compare equal to
+ *     the C string <code>"null"</code>, and
+ *     the JSON number <code>0.50</code> will compare equal to
+ *     the C string <code>"0.50"</code>.
+ * <li>Objects, arrays and invalid JSON will only compare equal to
+ *     the C string <code>""</code>.
+ * </ul>
  *
  * @param json (optional) JSON text
- * @param cstr UTF-8 C string to compare against
+ * @param cstr (required) UTF-8 C string to compare against
+ *
+ * This function sets @c errno to @c EINVAL if the JSON input is
+ * not a quoted JSON string.
  *
  * @retval  0 The JSON value compares equal to the C string.
  * @retval -1 The JSON string is lexicographically 'smaller' than
- *            the C string; or
- *            the value is <code>null</code> or malformed or invalid.
+ *            the C string
  * @retval +1 The JSON string is lexicographically 'larger' than the
  *            C string.
  */
@@ -642,8 +648,7 @@ int json_strcmp(const __JSON char *json, const char *cstr);
  *
  * @retval  0 The JSON value compares equal to the C string.
  * @retval -1 The JSON string is lexicographically 'smaller' than
- *            the C string; or
- *            the value is <code>null</code> or malformed or invalid.
+ *            the C string
  * @retval +1 The JSON string is lexicographically 'larger' than the
  *            C string.
  */
