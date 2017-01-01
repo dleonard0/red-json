@@ -34,32 +34,39 @@
 /**
  * Selects an element within a JSON structure.
  *
- * For example, the selection path "[1].name" selects the * value "Fred" from
+ * For example, the selection path "[1].name" selects the value "Fred" from
  * <code>[{"name":"Tim", "age":28},{"name":"Fred", "age":26}]</code>.
  *
  * A selection path is any sequence of <code>[<i>index</i>]</code> or
  * <code>.<i>key</i></code> path components.
- * Path components can be literal (e.g. <code>[7]</code> or <code>.foo</code>)
- * or parameter references (<code>[%u]</code> or <code>.%s</code>, which
- * expect parameteric arguments of type <code>unsigned int</code>
+ *
+ * Path components can be in-pattern literals
+ * (e.g. <code>[7]</code> or <code>.foo</code>)
+ * or argument references
+ * (e.g. <code>[%u]</code> or <code>.%s</code>, indicating
+ * the following arguments of type <code>unsigned int</code>
  * or <code>const char *</code>, respectively).
  *
- * There are some limitations on object keys in path components:
+ * Key path components have the following restrictions:
  * <ul>
- *     <li>a literal <code>.<i>key</i></code> must not contain '.' or '['
- *         characters, and occurrences of '%' must be doubled.
- *     <li>literal keys and vararg key parameters must be encoded in
- *         shortest-form UTF-8 because #json_strcmp() is used to compare them.
+ *     <li>an in-pattern <code>.<i>key</i></code> cannot contain
+ *         characters '.', '[' or '%'.
+ *     <li>both in-pattern keys and argument keys must be encoded in
+ *         shortest-form UTF-8 because #json_strcmpn() is used to compare them.
  * </ul>
  *
- * <code>[%d]</code> may be used in place of <code>[%u]</code> and expects
- * an argument of type @c int. Negative indicies will result in EINVAL.
+ * Index path components have the following restrictions:
+ * <ul>
+ *     <li>in-pattern indicies cannot begin with a minus sign.
+ *     <li><code>[%d]</code> may be used, but if its @c int argument is
+ *         negative, the selection algorithm will return ENOENT.
+ * </ul>
  *
  * @param json  (optional) JSON value to select within
  * @param path  selection path, matches <code>(.key|.%s|[int]|[%u])*</code>
  *              The leading '.' may be omitted.
- * @param ...   Variadic parameters for each "%s" and "[%u]"
- *              component of the @a path
+ * @param ...   Respective arguments for each <code>.%s</code> and
+ *              <code>[%u]</code> component of the @a path
  *
  * @returns pointer within @a json to the selected value
  * @retval  NULL  [ENOENT] The path was not found in the value.

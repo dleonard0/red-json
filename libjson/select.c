@@ -36,6 +36,8 @@ json_selectv(const __JSON char *json, const char *path, va_list ap)
 				index = va_arg(ap, unsigned int);
 			} else {
 				index = 0;
+				if (*path == '+')
+					path++;
 				if (!isdigit(*path))
 					goto einval;
 				while (isdigit(*path)) {
@@ -80,14 +82,14 @@ json_selectv(const __JSON char *json, const char *path, va_list ap)
 			} else {
 				key = path;
 				while (!strchr("[.", *path)) {
-					if (*path == '%') {
-						path++;
-						if (*path != '%')
-							goto einval;
-					}
+					if (*path == '%')
+						goto einval;
 					path++;
 				}
 				keylen = path - key;
+				/* Literal empty .<key> is ambiguous */
+				if (!keylen)
+					goto einval;
 			}
 			/* Skip to the first matching key in the object */
 			ji = json_as_object(json);

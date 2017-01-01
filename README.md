@@ -41,8 +41,8 @@ Search within a structure using a Javascript-like selector:
     cook = json_select(input, "hotel[1].cook");
 
     printf("The cook's age is %d\n", json_select_int(cook, "age"));
-    for (int i = 0; i < 5; i++)
-        printf("score #%d: %d\n", i, json_select_int(cook, "scores[%d]", i));
+    for (unsigned int i = 0; i < 5; i++)
+        printf("score #%u: %d\n", i, json_select_int(cook, "scores[%u]", i));
 ```
 
 ```json
@@ -61,7 +61,7 @@ Search within a structure using a Javascript-like selector:
    }
 ```
 
-Did you notice the `%d` in the path?
+Did you notice the varargs format, `"scores[%u]"`?
 
 Let's print safe, UTF-8 strings:
 
