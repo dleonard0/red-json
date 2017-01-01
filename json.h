@@ -18,7 +18,7 @@
  *
  * See README.md for more information.
  *
- * @author David Leonard; released into Public Domain 2016
+ * @author David Leonard; released into Public Domain 2017
  */
 
 /** @file */

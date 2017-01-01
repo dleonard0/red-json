@@ -1,5 +1,5 @@
-#ifndef H_LIBJSON_JSON
-#define H_LIBJSON_JSON
+#ifndef LIBJSON_JSON_PRIVATE_H
+#define LIBJSON_JSON_PRIVATE_H
 
 #include "json.h"
 
@@ -8,14 +8,14 @@
 #define __PURE   __attribute__ ((pure))
 
 /* Hide some functions private to the library */
-#define is_delimiter		__libjson_is_delimiter
-#define is_word_start		__libjson_is_word_start
-#define is_word_char		__libjson_is_word_char
-#define skip_white		__libjson_skip_white
-#define can_skip_delim		__libjson_can_skip_delim
-#define skip_value		__libjson_skip_value
-#define word_strcmpn		__libjson_word_strcmpn
-#define word_strcmp		__libjson_word_strcmp
+#define is_delimiter		_red_json_is_delimiter
+#define is_word_start		_red_json_is_word_start
+#define is_word_char		_red_json_is_word_char
+#define skip_white		_red_json_skip_white
+#define can_skip_delim		_red_json_can_skip_delim
+#define skip_value		_red_json_skip_value
+#define word_strcmpn		_red_json_word_strcmpn
+#define word_strcmp		_red_json_word_strcmp
 
 int is_delimiter(__JSON char ch) __PURE;
 int is_word_start(__JSON char ch) __PURE;
@@ -28,4 +28,4 @@ int skip_value(const __JSON char **json_ptr);
 int word_strcmpn(const __JSON char *json, const char *str, size_t strsz);
 int word_strcmp(const __JSON char *json, const char *str);
 
-#endif /* H_LIBJSON_JSON */
+#endif /* LIBJSON_JSON_PRIVATE_H */

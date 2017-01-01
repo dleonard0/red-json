@@ -1,3 +1,6 @@
+#ifndef LIBJSON_T_ASSERT_H
+#define LIBJSON_T_ASSERT_H
+
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -127,3 +130,4 @@ _assert_chareq(_assert_params, char a, char b)
                 assert_inteq(errno, expected_errno); \
         } while (0)
 
+#endif /* LIBJSON_T_ASSERT_H */
