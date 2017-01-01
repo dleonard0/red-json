@@ -31,6 +31,8 @@
 #define __JSON_ARRAYI  /**< Indicates pointer is an array iterator */
 #define __JSON_OBJECTI /**< Indicates pointer is an object iterator */
 
+#define RED_JSON_VERSION 0x0001 /* major<<8 | minor */
+
 /**
  * Selects an element within a JSON structure.
  *
