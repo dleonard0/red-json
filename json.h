@@ -358,34 +358,30 @@ int json_is_null(const __JSON char *json);
  * </ul>
  *
  * JSON quoted strings are converted into NUL-terminated, shortest-form
- * UTF-8 C strings, with an exception regarding 'unsafe' strings.
- * Input strings that would convert to an 'unsafe' output string will,
- * instead, convert to an empty output string and set @c errno to @c ERANGE.
- * An UTF-8 string is considered unsafe if it contains:
- * <ul><li>an overlong encoding (eg C0 80 for U+0);
+ * UTF-8 C strings, unless they are 'unsafe'.
+ *
+ * A JSON string is 'unsafe' if it contains
+ * <ul><li>an overlong UTF-8 encoding (eg C0 80 for U+0);
  *     <li>a sequence that decodes to any codepoint in the
  *         unsafe codepoint set, {U+0, U+D800..U+DFFF, U+110000..};
  *     <li>an escape sequence that would decode to an unsafe codepoint
  * </ul>
+ * 'Unsafe' input strings convert to an empty output string and set
+ * @c errno to @c ERANGE.
  *
- * If @a bufsz is zero, the function computes the minimum buffer size
- * to supply and returns that.
+ * If @a bufsz is zero, the function operates in "size request mode,
+ * and computes the minimum buffer size needed to hold the result.
  *
  * If @a bufsz is non-zero and too small to hold the whole result, the
- * output
- * is truncated at the nearest UTF-8 sequence boundary such that a terminating
- * NUL byte can be written (unless @a bufsz is zero).
+ * output is truncated at the nearest UTF-8 sequence boundary such that
+ * a terminating NUL byte can be written.
+ *
  * A non-zero return value will always indicate the minimum buffer size
- * required to avoid such truncation during conversion.
+ * required.
  *
  * On error, this function returns 0 and sets @c errno to @c EINVAL. It
  * will fill the output buffer with a best-effort nul-terminated translation,
  * storing unsafe codepoints as U+FFFD.
- *
- * 'Words' is the name for unquoted JSON values terminated by whitespace,
- * NUL, or one of <code>[]{}:,"</code>. Words includes numbers, booleans
- * and <code>null</code>. Because of this rule, JSON expressions like
- * <code>{foo:bar}</code> convert the same as <code>{"foo":"bar"}</code>.
  *
  * @param json  (optional) input JSON text
  * @param buf   storage for the returned UTF-8 string.
@@ -394,7 +390,8 @@ int json_is_null(const __JSON char *json);
  * @param bufsz the size of @a buf, or 0 if only a return value is wanted
  *
  * @returns the minimum buffer size required to convert the input without
- *          truncation, including terminating NUL
+ *          truncation. If this is larger than @a bufsz, then the @a buf
+ *          will have been truncated.
  * @retval 0 [ENOMEM] The buffer size is too small and non-zero.
  * @retval 0 [EINVAL] The input text is invalid or malformed.
  * @retval 0 [EINVAL] The input text is not a string.
