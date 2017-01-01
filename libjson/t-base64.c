@@ -4,7 +4,7 @@
 #include "t-assert.h"
 
 /**
- * Asserts that #json_base64_from_bytes() will encode
+ * Asserts that #json_from_bytes() will encode
  * a plaintext into its BASE-64-encoded form.
  * Also assert that it correctly detect boundary errors in buffer sizes.
  *
@@ -17,34 +17,34 @@
 		int jlen = strlen(etext) + 2, plen = sizeof(ptext)-1;	\
 									\
 		/* Passing a too-small dstsz is an error */		\
-		assert_errno(json_base64_from_bytes(ptext, plen,	\
+		assert_errno(json_from_bytes(ptext, plen,	\
 			_json, 0) == -1, ENOMEM);			\
-		assert_errno(json_base64_from_bytes(ptext, plen,	\
+		assert_errno(json_from_bytes(ptext, plen,	\
 			_json, 1) == -1, ENOMEM);			\
-		assert_errno(json_base64_from_bytes(ptext, plen,	\
+		assert_errno(json_from_bytes(ptext, plen,	\
 			_json, 2) == -1, ENOMEM);			\
 									\
 		/* Passing a small-by-one dst is an error */		\
-		assert_errno(json_base64_from_bytes(ptext, plen,	\
+		assert_errno(json_from_bytes(ptext, plen,	\
 			_json, jlen) == -1, ENOMEM);			\
 									\
 		/* Passing a just-right dstz converts correctly */	\
 		memset(_json, '#', sizeof _json);			\
-		assert_inteq(json_base64_from_bytes(ptext, plen,	\
+		assert_inteq(json_from_bytes(ptext, plen,	\
 			_json, jlen + 1), jlen);			\
 		assert_chareq(_json[jlen], '\0');			\
 		assert_streq(_json, "\"" etext "\"");			\
 									\
 		/* Passing an oversized dstsz converts correctly */	\
 		memset(_json, '#', sizeof _json);			\
-		assert_inteq(json_base64_from_bytes(ptext, plen,	\
+		assert_inteq(json_from_bytes(ptext, plen,	\
 			_json, sizeof _json), jlen);			\
 		assert_chareq(_json[jlen], '\0');			\
 		assert_streq(_json, "\"" etext "\"");			\
 	} while (0)
 
 /**
- * Asserts that #json_as_base64() will decode
+ * Asserts that #json_as_bytes() will decode
  * a JSON string into it binary form.
  * Also assert that it correctly detect boundary errors in buffer sizes.
  *
@@ -58,7 +58,7 @@
 									\
 		/* Passing an undersizeddstsz converts correctly */	\
 		memset(_plain, '#', sizeof _plain);			\
-		assert_inteq(json_as_base64("\"" etext "\"",		\
+		assert_inteq(json_as_bytes("\"" etext "\"",		\
 			_plain, sizeof _plain), plen);			\
 		assert_memeq(ptext, _plain, plen);			\
 	} while (0)
@@ -74,16 +74,16 @@ main()
 
 	char plain[1024];
 
-	/* The JSON_BASE64_DSTSZ() macro computes the right size.
+	/* The JSON_FROM_BYTES_DSTSZ() macro computes the right size.
 	 * Using the examples from RFC 3548 section 7 and adding
 	 * 3 bytes for the two quotes and NUL: */
-	assert_inteq(JSON_BASE64_DSTSZ(6), 8 + 3);
-	assert_inteq(JSON_BASE64_DSTSZ(5), 8 + 3);
-	assert_inteq(JSON_BASE64_DSTSZ(4), 8 + 3);
-	assert_inteq(JSON_BASE64_DSTSZ(3), 4 + 3);
-	assert_inteq(JSON_BASE64_DSTSZ(2), 4 + 3);
-	assert_inteq(JSON_BASE64_DSTSZ(1), 4 + 3);
-	assert_inteq(JSON_BASE64_DSTSZ(0), 0 + 3);
+	assert_inteq(JSON_FROM_BYTES_DSTSZ(6), 8 + 3);
+	assert_inteq(JSON_FROM_BYTES_DSTSZ(5), 8 + 3);
+	assert_inteq(JSON_FROM_BYTES_DSTSZ(4), 8 + 3);
+	assert_inteq(JSON_FROM_BYTES_DSTSZ(3), 4 + 3);
+	assert_inteq(JSON_FROM_BYTES_DSTSZ(2), 4 + 3);
+	assert_inteq(JSON_FROM_BYTES_DSTSZ(1), 4 + 3);
+	assert_inteq(JSON_FROM_BYTES_DSTSZ(0), 0 + 3);
 
 	/* Valid examples from RFC 3548 s7 */
 	assert_encode_and_decode_work("\x14\xfb\x9c\x03\xd9\x7e", "FPucA9l+");
@@ -121,18 +121,18 @@ main()
 	assert_decode_works("a", "\\u0059\\u0051\\u003d\\u003d");
 
 	/* Decoding NULL JSON pointers returns EINVAL */
-	assert_errno(json_as_base64(NULL, NULL, 0) == -1, EINVAL);
-	assert_errno(json_as_base64(NULL, plain, 0) == -1, EINVAL);
-	assert_errno(json_as_base64(NULL, plain, sizeof plain) == -1, EINVAL);
+	assert_errno(json_as_bytes(NULL, NULL, 0) == -1, EINVAL);
+	assert_errno(json_as_bytes(NULL, plain, 0) == -1, EINVAL);
+	assert_errno(json_as_bytes(NULL, plain, sizeof plain) == -1, EINVAL);
 
 	/* Decoding invalid JSON returns EINVAL */
-	assert_errno(json_as_base64("", NULL, 0) == -1, EINVAL);
-	assert_errno(json_as_base64("", plain, 0) == -1, EINVAL);
-	assert_errno(json_as_base64("", plain, sizeof plain) == -1, EINVAL);
+	assert_errno(json_as_bytes("", NULL, 0) == -1, EINVAL);
+	assert_errno(json_as_bytes("", plain, 0) == -1, EINVAL);
+	assert_errno(json_as_bytes("", plain, sizeof plain) == -1, EINVAL);
 
 	/* Decoding invalid BASE-64 strings returns EINVAL */
 	#define assert_decodes_as_invalid(etext) \
-		assert_errno(json_as_base64("\"" etext "\"", \
+		assert_errno(json_as_bytes("\"" etext "\"", \
 			plain, sizeof plain) == -1, EINVAL)
 	assert_decodes_as_invalid("_");
 	assert_decodes_as_invalid("!aGVsbG8=");

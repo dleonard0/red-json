@@ -492,12 +492,12 @@ char *json_as_unsafe_strdup(const __JSON char *json)
  * @retval -1 [ENOMEM] The buffer size is too small.
  * @retval -1 [EINVAL] The JSON text is not a valid BASE-64 JSON string.
  */
-int json_as_base64(const __JSON char *json, void *buf, size_t bufsz);
+int json_as_bytes(const __JSON char *json, void *buf, size_t bufsz);
 
 /**
  * Encodes binary data into a BASE-64, quoted JSON string.
  *
- * Use #JSON_BASE64_DSTSZ() to determine the dst buffer size required.
+ * Use #JSON_FROM_BYTES_DSTSZ() to determine the dst buffer size required.
  * If the dst buffer is too small, it will be truncated with a single NUL
  * (unless dstsz is zero) and an error will be returned.
  *
@@ -508,18 +508,18 @@ int json_as_base64(const __JSON char *json, void *buf, size_t bufsz);
  * @param dst   output buffer for holding double-quoted JSON string.
  *              This will be NUL-terminated on success.
  * @param dstsz size of the output buffer @ dst.
- *              This must be at least @c JSON_BASE64_DSTSZ(srcsz).
+ *              This must be at least @c JSON_FROM_BYTES_DSTSZ(srcsz).
  *
  * @returns the number of non-NUL bytes that were stored in @a dst
  * @retval -1 [ENOMEM] The @a dstsz is too small.
  */
-int json_base64_from_bytes(const void *src, size_t srcsz,
+int json_from_bytes(const void *src, size_t srcsz,
 			      __JSON char *dst, size_t dstsz);
 
-/** Calculates the output buffer size for #json_base64_from_bytes().
+/** Calculates the output buffer size for #json_from_bytes().
  *  @param srcsz length of the source in bytes
  */
-#define JSON_BASE64_DSTSZ(srcsz)   (3 + ((srcsz + 2) / 3) * 4)
+#define JSON_FROM_BYTES_DSTSZ(srcsz)   (3 + ((srcsz + 2) / 3) * 4)
 
 /**
  * Converts a UTF-8 C string into a quoted JSON string.

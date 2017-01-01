@@ -92,9 +92,9 @@ Sometimes you just want to compare a string:
 Extract BASE-64 content:
 
 ```c
-    int buflen = json_as_base64("\"SQNDUDQzNw==\"", buf, sizeof buf);
+    int buflen = json_as_bytes("\"SQNDUDQzNw==\"", buf, sizeof buf);
     if (buflen < 0)
-        perror("json_as_base64");
+        perror("json_as_bytes");
 ```
 
 ## Pointer convention
@@ -157,8 +157,8 @@ but if you do, here are the details:
 |`json_as_str()`   |0          |`ENOMEM`|output buffer was too small	|
 |`json_as_strdup()`|`NULL`     |`EINVAL`|input is not a string		|
 |`json_as_strdup()`|`NULL`     |`ENOMEM`|call to `malloc()` failed	|
-|`json_as_base64()`|-1         |`EINVAL`|input is not a BASE-64 string	|
-|`json_as_base64()`|-1         |`ENOMEM`|output buffer is too small	|
+|`json_as_bytes()` |-1         |`EINVAL`|input is not a BASE-64 string	|
+|`json_as_bytes()` |-1         |`ENOMEM`|output buffer is too small	|
 |`json_type()`     |`JSON_BAD` |        |input is not a JSON value	|
 |`json_span()`     |0          |`EINVAL`|input is not a JSON value	|
 |`json_span()`     |0          |`ENOMEM`|input is too deeply nested	|
@@ -223,10 +223,10 @@ If you would like the library to allocate the result string with
     char * json_as_strdup(const char *json);
     char * json_as_unsafe_strdup(const char *json);
 
-### Decoding BASE-64
+### Decoding BASE-64 to bytes
 
 ```c
-    int    json_as_base64(const char *json, void *buf, size_t bufsz);
+    int    json_as_bytes(const char *json, void *buf, size_t bufsz);
 ```
 
 ## Generating JSON
@@ -240,7 +240,7 @@ If you would like the library to allocate the result string with
                                 char *dst, size_t dstsz);
     size_t json_string_from_unsafe_strn(const char *src, int srclen,
                                 char *dst, size_t dstsz);
-    int json_base64_from_bytes(const void *src, size_t srcsz,
+    int json_from_bytes(const void *src, size_t srcsz,
                                 char *dst, size_t dstsz);
 
     extern const char json_true[];   /* "true" */

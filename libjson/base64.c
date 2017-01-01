@@ -65,7 +65,7 @@ shift_hex(__JSON char ch, char *out)
 
 __PUBLIC
 int
-json_as_base64(const __JSON char *json, void *buf, size_t bufsz)
+json_as_bytes(const __JSON char *json, void *buf, size_t bufsz)
 {
 	unsigned char *d = buf, *dend = d + bufsz;
 	unsigned seen_padding = 0;
@@ -156,13 +156,13 @@ nomem:
 
 __PUBLIC
 int
-json_base64_from_bytes(const void *src, size_t srcsz,
+json_from_bytes(const void *src, size_t srcsz,
 		       __JSON char *dst, size_t dstsz)
 {
 	const unsigned char *s = src;
 	__JSON char *out = dst;
 
-	if (dstsz < JSON_BASE64_DSTSZ(srcsz)) {
+	if (dstsz < JSON_FROM_BYTES_DSTSZ(srcsz)) {
 		errno = ENOMEM;
 		return -1;
 	}
