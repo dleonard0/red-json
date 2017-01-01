@@ -193,21 +193,24 @@ enum json_type {
 	JSON_ARRAY,	/**< The value starts with @c [ */
 	JSON_BOOL,	/**< The value starts with @c t or @c f */
 	JSON_NULL,	/**< The value starts with @c n */
-	JSON_NUMBER,	/**< The value starts with @c [-+.0-9] */
+	JSON_NUMBER,	/**< The value starts with @c [-0-9] */
 	JSON_STRING	/**< The value starts with @c " */
 };
 
 /**
  * Estimates the type of a JSON value.
  *
+ * This function is reliable when the input is strictly-valid JSON.
  * Only the JSON text's first non-whitespace character is used to
  * estimate the type.
- * This is reliable if the input is valid JSON.
- * Converter function errors can be used to find out if that is so.
+ *
+ * For example, the malformed JSON value <code>truu</code> will be
+ * detected as #JSON_BOOL and the non-strict number <code>.5</code>
+ * will be detected as #JSON_BAD.
  *
  * @param json  (optional) JSON text
  *
- * @returns the estimated value type
+ * @returns the estimated type
  */
 enum json_type json_type(const __JSON char *json);
 
@@ -216,11 +219,10 @@ enum json_type json_type(const __JSON char *json);
  *
  * The span of a value is the minimum number of bytes it occupies in the
  * JSON text.
+ * The span will include leading whitespace, but not trailing whitespace.
  *
  * The span can be used to copy out and re-use sub-structures without
  * the need for a conversion step.
- *
- * The span will include leading whitespace, but not trailing whitespace.
  *
  * @param json  (optional) JSON text
  *
