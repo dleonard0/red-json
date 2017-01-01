@@ -4,18 +4,29 @@
 
 #include "libjson_private.h"
 
-/** Tests if a character is an ASCII digit */
-static int
-is_digit(char ch)
+/* Const-corrected strtod */
+static double
+const_strtod(const char *nptr, const char **endptr)
 {
-	return ch >= '0' && ch <= '9';
+	/*
+	 * The cast is safe, because a pointer derived from `const char *ntptr`
+	 * is stored in `*endptr`.
+	 *
+	 * The library function `double strtod(const char *, char **)`
+	 * has the signature it does because C does not permit
+	 * automatic conversion of `const char **` to `char **`
+	 * in the second argument, but it will convert 'char *' to
+	 * 'const char *' in the first argument, which I suppose is
+	 * more common.
+	 */
+	return strtod(nptr, (char **)endptr);
 }
 
 __PUBLIC
 double
-json_as_double(const char *json)
+json_as_double(const __JSON char *json)
 {
-	char *end = NULL;
+	const __JSON char *end = NULL;
 	double number;
 
 	if (!json) {
@@ -23,44 +34,55 @@ json_as_double(const char *json)
 		return NAN;
 	}
 	skip_white(&json);
-	if (*json != '-' && *json != '.' && !is_digit(*json)) {
-		/* Not likely a number */
-		if (word_strcmp(json, json_true) == 0) {
-			errno = EINVAL;
-			return 1;
+
+	if (*json == '"' || *json == '\'') {
+		/*
+		 * strtod() does not know how to decode JSON string escapes,
+		 * so to do this properly, we would allocate a buffer,
+		 * decode the string into it, and then call strtod.
+		 *
+		 * However, the allocation size is unknown, and allocating
+		 * memory like that would be suprising to the caller.
+		 *
+		 * Anyway, treating quoted numbers as numbers is
+		 * an extension of JSON and we're going to return EINVAL,
+		 * so I think simply calling strtod directly on the
+		 * escaped content of the string will get a reasonable
+		 * result for least effort and risk.
+		 */
+		__JSON char quote = *json++;
+		number = const_strtod(json, &end);
+		if (end == json)
+			number = NAN;
+		else {
+			/* Guard against tricky inputs such as "0\u0031",
+			 * by returning NAN on chars that strtod rejects. */
+			skip_white(&end);
+			if (*end != quote)
+				number = NAN;
 		}
-		if (word_strcmp(json, json_false) == 0) {
-			errno = EINVAL;
-			return 0;
-		}
-		if (*json == '['
-		 || *json == '{'
-		 || word_strcmp(json, json_null) == 0)
-		{
-			errno = EINVAL;
-			return NAN;
-		}
-		if (*json == '"' || *json == '\'') {
-			json++;
-			skip_white(&json);
-		}
-		/* treat string content as a number */
+		errno = EINVAL;
+		return number;
 	}
-	number = strtod(json, &end);
+
+	number = const_strtod(json, &end);
 	if (end == json) {
 		errno = EINVAL;
 		return NAN;
 	};
+	skip_white(&end);
+	if (!is_delimiter(*end))
+		errno = EINVAL;
 	return number;
 }
 
 __PUBLIC
 long
-json_as_long(const char *json)
+json_as_long(const __JSON char *json)
 {
 	long number;
 	int save_errno = errno;
-	char *end = NULL;
+	__JSON char *end = NULL;
 	double fp;
 
 	if (!json) {
@@ -103,7 +125,7 @@ json_as_long(const char *json)
 
 __PUBLIC
 int
-json_as_int(const char *json)
+json_as_int(const __JSON char *json)
 {
 	long number = json_as_long(json);
 	if (number > INT_MAX) {

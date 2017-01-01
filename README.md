@@ -145,7 +145,8 @@ Detect strict conversion errors using the following table.
 |------------------|-----------|--------|-------------------------------|
 |`json_as_array()` |`NULL`     |`EINVAL`|input is not an array `[...]`	|
 |`json_as_object()`|`NULL`     |`EINVAL`|input is not an object `{...}`	|
-|`json_as_double()`|`NAN`¹     |`EINVAL`|input is not a number		|
+|`json_as_double()`|any        |`EINVAL`|input is a quoted string 	|
+|`json_as_double()`|`NAN`¹     |`EINVAL`|input is not a valid number	|
 |`json_as_double()`|±`HUGE_VAL`|`ERANGE`|number would overflow		|
 |`json_as_double()`|0²         |`ERANGE`|number would underflow		|
 |`json_as_long()`  |0²         |`EINVAL`|input is not a number		|
