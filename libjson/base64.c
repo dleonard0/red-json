@@ -12,6 +12,10 @@ char base64_to_char[64] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 			  "abcdefghijklmnopqrstuvwxyz"
 			  "0123456789+/";
 
+/*
+ * Map characters from { U+0 .. U+FF } into their BASE-64 digit value,
+ * or to the special values BAD, PAD or SPC
+ */
 static const
 unsigned char char_to_base64[256] = {
   /* 00 */ BAD,BAD,BAD,BAD,BAD,BAD,BAD,BAD, BAD,SPC,SPC,BAD,SPC,SPC,BAD,BAD,
@@ -64,12 +68,18 @@ int
 json_as_base64(const __JSON char *json, void *buf, size_t bufsz)
 {
 	unsigned char *d = buf, *dend = d + bufsz;
+	unsigned seen_padding = 0;
+	char quote;
 
 	skip_white(&json);
-	if (!json || *json != '"')
+	if (!json)
 		goto invalid;
-	json++;
 
+	quote = *json++;
+	if (quote != '"' && quote != '\'')
+		goto invalid;
+
+	/* OUT(c) safely emits a byte into the destination buffer */
 #	define OUT(c) do {					\
 		if (bufsz) {					\
 			if (d < dend) *d++ = (c);		\
@@ -77,27 +87,34 @@ json_as_base64(const __JSON char *json, void *buf, size_t bufsz)
 		}						\
 	} while(0)
 
-	while (*json && *json != '"') {
+	while (*json) {
 		unsigned i;
 		unsigned char v[4];
 
+		/* Collect four BASE-64 digits, or the end quote */
 		for (i = 0; i < 4; i++) {
 			do {
 				__JSON char ch = *json++;
+				if (ch == quote && i == 0) {
+					/* unescaped quote terminates input */
+					return d - (unsigned char *)buf;
+				}
 				if (ch == '\\') {
 					ch = *json++;
 					switch (ch) {
 					case 'n': ch = '\n'; break;
 					case 't': ch = '\t'; break;
 					case 'f': ch = '\f'; break;
-					case '/': break;
+					case '/':            break;
 					case 'u': {
+					    /* Only allow \u0000..\u00ff */
 					    if (*json++ != '0') goto invalid;
 					    if (*json++ != '0') goto invalid;
 					    if (!shift_hex(*json++, &ch))
-							goto invalid;
+						goto invalid;
 					    if (!shift_hex(*json++, &ch))
-							goto invalid;
+						goto invalid;
+					    break;
 					}
 					default:
 					    goto invalid;
@@ -105,23 +122,27 @@ json_as_base64(const __JSON char *json, void *buf, size_t bufsz)
 				}
 				v[i] = char_to_base64[(unsigned char)ch];
 			} while (v[i] == SPC);
+			if (seen_padding)
+				goto invalid;
 			if (v[i] == BAD)
 				goto invalid;
 		}
 		if (v[0] == PAD || v[1] == PAD)
 			goto invalid;
 		OUT((v[0] << 2) | (v[1] >> 4));
-		if (v[2] == PAD)
-			break;
-		OUT((v[1] << 4) | (v[2] >> 2));
-		if (v[3] == PAD)
-			break;
-		OUT(v[2] << 6 | v[3]);
+		if (v[2] == PAD) {
+			if (v[3] != PAD)
+				goto invalid;
+			seen_padding = 1;
+		} else {
+			OUT((v[1] << 4) | (v[2] >> 2));
+			if (v[3] == PAD)
+				seen_padding = 1;
+			else
+				OUT(v[2] << 6 | v[3]);
+		}
 	}
-	if (*json != '"')
-		goto invalid;
-	return d - (unsigned char *)buf;
-#	undef OUT
+	/* Unexpected end of input */
 
 invalid:
 	errno = EINVAL;
@@ -129,6 +150,8 @@ invalid:
 nomem:
 	errno = ENOMEM;
 	return -1;
+
+#	undef OUT
 }
 
 __PUBLIC

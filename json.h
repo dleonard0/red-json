@@ -466,37 +466,43 @@ char *json_as_unsafe_strdup(const __JSON char *json)
     __attribute__((malloc));
 
 /**
- * Converts BASE-64 JSON string into an array of bytes.
+ * Decodes BASE-64 JSON string into an array of bytes.
  *
- * This function is intended for recovering binary data from JSON strings.
- * Whitespace is permitted (and ignored) within the BASE-64 string.
+ * This function recovers binary data from a JSON string containing BASE-64.
+ * Whitespace within the BASE-64 input is ignored.
+ *
+ * The minimum output buffer size can be obtained by calling this function
+ * with a zero-sized output buffer size.
  *
  * @see RFC 3548
  *
- * @param json  (optional) JSON text
- * @param buf   (optional) storage for the returned binary data
- * @param bufsz the size of @a buf
+ * @param json  (optional) input JSON text
+ * @param buf   (optional) output storage for the returned binary data
+ * @param bufsz the size of the output buffer @a buf, or
+ *              0 to request a minimum-size calculation
  *
- * @returns the number of bytes stored in @a buf on success, or
- *          the minimum buffer size required when @a bufsz is zero
+ * @returns the number of bytes successfuly written to @a buf, or
+ *          the minimum output buffer size needed when @a bufsz is 0
  * @retval -1 [ENOMEM] The buffer size is too small.
  * @retval -1 [EINVAL] The JSON text is not a valid BASE-64 JSON string.
  */
 int json_as_base64(const __JSON char *json, void *buf, size_t bufsz);
 
 /**
- * Converts binary data into a BASE-64, quoted JSON string.
+ * Encodes binary data into a BASE-64, quoted JSON string.
  *
- * Use #JSON_BASE64_DSTSZ() to determine the buffer size required.
- * If the buffer is too small, it will be truncated with NUL and
- * the function will return 0 setting @c errno to @c ENOMEM.
+ * Use #JSON_BASE64_DSTSZ() to determine the dst buffer size required.
+ * If the dst buffer is too small, it will be truncated with a single NUL
+ * (unless dstsz is zero) and an error will be returned.
  *
  * @see RFC 3548
  *
  * @param src   source bytes
- * @param srcsz length of source
- * @param dst   output buffer for JSON string. This will be NUL-terminated.
- * @param dstsz maximum size of the output buffer
+ * @param srcsz length of source in bytes
+ * @param dst   output buffer for holding double-quoted JSON string.
+ *              This will be NUL-terminated on success.
+ * @param dstsz size of the output buffer @ dst.
+ *              This must be at least @c JSON_BASE64_DSTSZ(srcsz).
  *
  * @returns the number of non-NUL bytes that were stored in @a dst
  * @retval -1 [ENOMEM] The @a dstsz is too small.
@@ -504,7 +510,9 @@ int json_as_base64(const __JSON char *json, void *buf, size_t bufsz);
 int json_base64_from_bytes(const void *src, size_t srcsz,
 			      __JSON char *dst, size_t dstsz);
 
-/** Calculates the dstsz required for #json_base64_from_bytes() */
+/** Calculates the output buffer size for #json_base64_from_bytes().
+ *  @param srcsz length of the source in bytes
+ */
 #define JSON_BASE64_DSTSZ(srcsz)   (3 + ((srcsz + 2) / 3) * 4)
 
 /**
@@ -521,13 +529,14 @@ int json_base64_from_bytes(const void *src, size_t srcsz,
  *
  * @param src   (optional) NUL-terminated source string in UTF-8
  * @param dst   output buffer, will be NUL terminated.
- * @param dstsz output buffer size, or 0 to indicate a size request
+ * @param dstsz output buffer size, or
+ *              0 to indicate a size request
  *
- * @returns the minimum number of bytes of output buffer required, or
- *         the number of bytes stored in @a dst including the NUL.
+ * @returns the minimum @a dstsz required (@a dstsz was 0), or
+ *          the number of bytes stored in @a dst including the NUL.
  * @retval 0 [EINVAL] The source string is @c NULL.
  * @retval 0 [EINVAL] The source string contains invalid UTF-8.
- * @retval 0 [ENOMEM] The output buffer is too small.
+ * @retval 0 [ENOMEM] The output buffer size @a dstz was too small and non-zero.
  */
 size_t json_string_from_str(const char *src,
 				__JSON char *dst, size_t dstsz);
