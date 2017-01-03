@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "libjson_private.h"
+#include "redjson_private.h"
 #include "utf8.h"
 
 /** Delimiters are bytes that terminate unquoted words.

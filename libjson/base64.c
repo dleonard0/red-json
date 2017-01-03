@@ -1,6 +1,6 @@
 #include <errno.h>
 
-#include "libjson_private.h"
+#include "redjson_private.h"
 #include "utf8.h"
 
 #define BAD 0xffu  /* Not a BASE-64 symbol */

@@ -4,7 +4,7 @@
  * Tests for the internal word_strcmp() function
  */
 
-#include "libjson_private.h"
+#include "redjson_private.h"
 #include "t-assert.h"
 
 /* Assert a comparison by word_strcmp() and word_strcmpn() */

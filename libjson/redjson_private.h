@@ -8,14 +8,14 @@
 #define __PURE   __attribute__ ((pure))
 
 /* Hide some functions private to the library */
-#define is_delimiter		_red_json_is_delimiter
-#define is_word_start		_red_json_is_word_start
-#define is_word_char		_red_json_is_word_char
-#define skip_white		_red_json_skip_white
-#define can_skip_delim		_red_json_can_skip_delim
-#define skip_value		_red_json_skip_value
-#define word_strcmpn		_red_json_word_strcmpn
-#define word_strcmp		_red_json_word_strcmp
+#define is_delimiter		_redjson_is_delimiter
+#define is_word_start		_redjson_is_word_start
+#define is_word_char		_redjson_is_word_char
+#define skip_white		_redjson_skip_white
+#define can_skip_delim		_redjson_can_skip_delim
+#define skip_value		_redjson_skip_value
+#define word_strcmpn		_redjson_word_strcmpn
+#define word_strcmp		_redjson_word_strcmp
 
 int is_delimiter(__JSON char ch) __PURE;
 int is_word_start(__JSON char ch) __PURE;

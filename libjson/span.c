@@ -1,4 +1,4 @@
-#include "libjson_private.h"
+#include "redjson_private.h"
 
 __PUBLIC
 size_t

@@ -2,7 +2,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "libjson_private.h"
+#include "redjson_private.h"
 
 #define WHITESPACE " \t\n\r"
 #define MAX_NEST 32768

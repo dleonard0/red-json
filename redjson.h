@@ -1,5 +1,5 @@
-#ifndef RED_JSON_H
-#define RED_JSON_H
+#ifndef REDJSON_H
+#define REDJSON_H
 
 /**
  * @mainpage Red JSON parser
@@ -31,7 +31,7 @@
 #define __JSON_ARRAYI  /**< Indicates pointer is an array iterator */
 #define __JSON_OBJECTI /**< Indicates pointer is an object iterator */
 
-#define RED_JSON_VERSION 0x0001 /* major<<8 | minor */
+#define REDJSON_API_VERSION 0x0001 /* major<<8 | minor */
 extern const char redjson_lib_version[];
 
 /**
@@ -660,4 +660,4 @@ extern const char json_true[];	/**< "true" */
 extern const char json_false[];	/**< "false" */
 extern const char json_null[];	/**< "null" */
 
-#endif /* RED_JSON_H */
+#endif /* REDJSON_H */

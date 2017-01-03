@@ -29,10 +29,10 @@ typedef unsigned unicode_t;
 #define IS_DCxx(u)          (((u) & ~0x0ff) == 0xdc00)  /* U+DC00 .. U+DCFF */
 #define IS_UTF8_SAFE(u)     ((u) <= 0x10ffff && !IS_SURROGATE(u))
 
-#define get_utf8_raw_bounded	_red_json_get_utf8_raw_bounded
-#define put_utf8_raw		_red_json_put_utf8_raw
-#define get_utf8_sanitized	_red_json_get_utf8_sanitized
-#define put_sanitized_utf8	_red_json_put_sanitized_utf8
+#define get_utf8_raw_bounded	_redjson_get_utf8_raw_bounded
+#define put_utf8_raw		_redjson_put_utf8_raw
+#define get_utf8_sanitized	_redjson_get_utf8_sanitized
+#define put_sanitized_utf8	_redjson_put_sanitized_utf8
 
 size_t get_utf8_raw_bounded(const char *p, const char *p_end,
 				unicode_t *u_return);
