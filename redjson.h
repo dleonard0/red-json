@@ -32,6 +32,7 @@
 #define __JSON_OBJECTI /**< Indicates pointer is an object iterator */
 
 #define RED_JSON_VERSION 0x0001 /* major<<8 | minor */
+extern const char redjson_lib_version[];
 
 /**
  * Selects an element within a JSON structure.

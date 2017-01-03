@@ -18,6 +18,7 @@ libredjson_la_SOURCES += libjson/string.c
 libredjson_la_SOURCES += libjson/type.c
 libredjson_la_SOURCES += libjson/utf8.c
 libredjson_la_SOURCES += libjson/word.c
+libredjson_la_SOURCES += libjson/version.c
 
 check_PROGRAMS =
 check_PROGRAMS += libjson/t-array
