@@ -1,21 +1,23 @@
 
+ACLOCAL_AMFLAGS = -I m4
+
 include_HEADERS = json.h
 
-lib_LIBRARIES = libjson.a
-libjson_a_SOURCES  =
-libjson_a_SOURCES += libjson/array.c
-libjson_a_SOURCES += libjson/base64.c
-libjson_a_SOURCES += libjson/bool.c
-libjson_a_SOURCES += libjson/null.c
-libjson_a_SOURCES += libjson/number.c
-libjson_a_SOURCES += libjson/object.c
-libjson_a_SOURCES += libjson/select.c
-libjson_a_SOURCES += libjson/skip.c
-libjson_a_SOURCES += libjson/span.c
-libjson_a_SOURCES += libjson/string.c
-libjson_a_SOURCES += libjson/type.c
-libjson_a_SOURCES += libjson/utf8.c
-libjson_a_SOURCES += libjson/word.c
+lib_LTLIBRARIES = libredjson.la
+libredjson_la_SOURCES  =
+libredjson_la_SOURCES += libjson/array.c
+libredjson_la_SOURCES += libjson/base64.c
+libredjson_la_SOURCES += libjson/bool.c
+libredjson_la_SOURCES += libjson/null.c
+libredjson_la_SOURCES += libjson/number.c
+libredjson_la_SOURCES += libjson/object.c
+libredjson_la_SOURCES += libjson/select.c
+libredjson_la_SOURCES += libjson/skip.c
+libredjson_la_SOURCES += libjson/span.c
+libredjson_la_SOURCES += libjson/string.c
+libredjson_la_SOURCES += libjson/type.c
+libredjson_la_SOURCES += libjson/utf8.c
+libredjson_la_SOURCES += libjson/word.c
 
 check_PROGRAMS =
 check_PROGRAMS += libjson/t-array
@@ -31,19 +33,19 @@ check_PROGRAMS += libjson/t-str-from
 check_PROGRAMS += libjson/t-strcmp
 check_PROGRAMS += libjson/t-type
 check_PROGRAMS += libjson/t-word
-libjson_t_array_LDADD	= libjson.a
-libjson_t_base64_LDADD	= libjson.a
-libjson_t_bool_LDADD	= libjson.a
-libjson_t_null_LDADD	= libjson.a
-libjson_t_number_LDADD	= libjson.a
-libjson_t_object_LDADD	= libjson.a
-libjson_t_select_LDADD	= libjson.a
-libjson_t_span_LDADD	= libjson.a
-libjson_t_str_as_LDADD	= libjson.a
-libjson_t_str_from_LDADD= libjson.a
-libjson_t_strcmp_LDADD	= libjson.a
-libjson_t_type_LDADD	= libjson.a
-libjson_t_word_LDADD	= libjson.a
+libjson_t_array_LDADD	= libredjson.la
+libjson_t_base64_LDADD	= libredjson.la
+libjson_t_bool_LDADD	= libredjson.la
+libjson_t_null_LDADD	= libredjson.la
+libjson_t_number_LDADD	= libredjson.la
+libjson_t_object_LDADD	= libredjson.la
+libjson_t_select_LDADD	= libredjson.la
+libjson_t_span_LDADD	= libredjson.la
+libjson_t_str_as_LDADD	= libredjson.la
+libjson_t_str_from_LDADD= libredjson.la
+libjson_t_strcmp_LDADD	= libredjson.la
+libjson_t_type_LDADD	= libredjson.la
+libjson_t_word_LDADD	= libredjson.la
 
 TESTS = $(check_PROGRAMS)
 
