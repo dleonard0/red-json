@@ -1,7 +1,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-include_HEADERS = json.h
+include_HEADERS = redjson.h
 
 lib_LTLIBRARIES = libredjson.la
 libredjson_la_SOURCES  =

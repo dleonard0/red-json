@@ -17,6 +17,8 @@ A just-in-time, lightweight JSON parser for C.
 Let's convert some numbers:
 
 ```c
+    #include <redjson.h>
+
     double x = json_as_double("1.24e8");
     double n = json_as_double(NULL); /* NAN, errno==EINVAL */
     int i = json_as_int("9.26e1"); /* 92 */
@@ -196,7 +198,9 @@ This is very fast.
 
 ### String conversion
 
+```c
     size_t json_as_str(const char *json, void *buf, size_t bufsz);
+```
 
 This function stores a "safe" C strings in the output buffer.
 A "safe" string contains only UTF-8 characters from the set
@@ -206,7 +210,9 @@ it excludes NUL (U+0).
 
 If you need to work with unsafe or malformed JSON strings, then use:
 
+```c
     size_t json_as_unsafe_str(const char *json, void *buf, size_t bufsz);
+```
 
 This function maps malformed and difficult input bytes into codepoints from
 { U+DC00 … U+DCFF }.
@@ -220,8 +226,10 @@ the string is truncated and the ideal buffer size is returned.
 If you would like the library to allocate the result string with
 `malloc()`, use:
 
+```c
     char * json_as_strdup(const char *json);
     char * json_as_unsafe_strdup(const char *json);
+```
 
 ### Decoding BASE-64 to bytes
 

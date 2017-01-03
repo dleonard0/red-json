@@ -1,6 +1,6 @@
 
 AC_INIT([red-json], [0.1])
-AC_CONFIG_SRCDIR([json.h])
+AC_CONFIG_SRCDIR([redjson.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign
 		  no-define

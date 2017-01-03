@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "json.h"
+#include "redjson.h"
 #include "t-assert.h"
 
 /** @file

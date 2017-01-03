@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "json.h"
+#include "redjson.h"
 #include "t-assert.h"
 
 int

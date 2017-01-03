@@ -1,7 +1,7 @@
 #ifndef LIBJSON_JSON_PRIVATE_H
 #define LIBJSON_JSON_PRIVATE_H
 
-#include "json.h"
+#include "redjson.h"
 
 /* Marks as function as exported from the library */
 #define __PUBLIC /* indicates the function is part of public API */

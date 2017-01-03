@@ -3,7 +3,7 @@
 #include <math.h>
 #include <limits.h>
 
-#include "json.h"
+#include "redjson.h"
 #include "t-assert.h"
 
 int

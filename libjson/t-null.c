@@ -1,6 +1,6 @@
 #include <assert.h>
 
-#include "json.h"
+#include "redjson.h"
 
 int
 main()
