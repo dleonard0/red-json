@@ -12,7 +12,7 @@
 #define is_word_start		_redjson_is_word_start
 #define is_word_char		_redjson_is_word_char
 #define skip_white		_redjson_skip_white
-#define can_skip_delim		_redjson_can_skip_delim
+#define can_skip_char		_redjson_can_skip_char
 #define skip_value		_redjson_skip_value
 #define word_strcmpn		_redjson_word_strcmpn
 #define word_strcmp		_redjson_word_strcmp
@@ -22,7 +22,7 @@ int is_word_start(__JSON char ch) __PURE;
 int is_word_char(__JSON char ch) __PURE;
 
 void skip_white(const __JSON char **json_ptr);
-int can_skip_delim(const __JSON char **json_ptr, char ch);
+int can_skip_char(const __JSON char **json_ptr, char ch);
 int skip_value(const __JSON char **json_ptr);
 
 int word_strcmpn(const __JSON char *json, const char *str, size_t strsz);

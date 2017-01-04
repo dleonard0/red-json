@@ -7,7 +7,7 @@ const __JSON_ARRAYI char *
 json_as_array(const char *json)
 {
 	skip_white(&json);
-	if (!can_skip_delim(&json, '[')) {
+	if (!can_skip_char(&json, '[')) {
 		errno = EINVAL;
 		return NULL;
 	}
@@ -26,7 +26,7 @@ json_array_next(const __JSON_ARRAYI char **ji)
 	if (!value || *value == ']') /* Iterators never point at whitespace */
 		return NULL;
 	advanced |= skip_value(json_ptr);
-	advanced |= can_skip_delim(json_ptr, ',');
+	advanced |= can_skip_char(json_ptr, ',');
 	if (!advanced)
 		*json_ptr = NULL;
 	return value;

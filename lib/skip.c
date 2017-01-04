@@ -32,7 +32,7 @@ skip_white(const __JSON char **json_ptr)
  * @retval nonzero The character and subsequent whitespace was skipped.
  */
 int
-can_skip_delim(const __JSON char **json_ptr, char ch)
+can_skip_char(const __JSON char **json_ptr, char ch)
 {
 	if (*json_ptr && **json_ptr == ch) {
 		++*json_ptr;
@@ -149,7 +149,7 @@ skip_value(const __JSON char **json_ptr)
 		if (depth.bit && !(nest[depth.offset] & depth.bit)) {
 			/* We're in an object; expect a key and colon */
 			(void) skip_word_or_string(&json);
-			(void) can_skip_delim(&json, ':');
+			(void) can_skip_char(&json, ':');
 		}
 
 		if (*json == '[' || *json == '{') {
@@ -182,7 +182,7 @@ skip_value(const __JSON char **json_ptr)
 		}
 
 		/* Skip commas if they are there */
-		(void) can_skip_delim(&json, ',');
+		(void) can_skip_char(&json, ',');
 	}
 	/* EOS */
 done:

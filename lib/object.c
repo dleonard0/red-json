@@ -7,7 +7,7 @@ const __JSON_OBJECTI char *
 json_as_object(const __JSON char *json)
 {
 	skip_white(&json);
-	if (!can_skip_delim(&json, '{')) {
+	if (!can_skip_char(&json, '{')) {
 		errno = EINVAL;
 		return NULL;
 	}
@@ -27,10 +27,10 @@ json_object_next(const __JSON_OBJECTI char **ji, const __JSON char **key_return)
 	if (!key || *key == '}') /* Iterators never point at whitespace */
 		return NULL;
 	advanced |= skip_value(json_ptr);
-	advanced |= can_skip_delim(json_ptr, ':');
+	advanced |= can_skip_char(json_ptr, ':');
 	value = *json_ptr;
 	advanced |= skip_value(json_ptr);
-	advanced |= can_skip_delim(json_ptr, ',');
+	advanced |= can_skip_char(json_ptr, ',');
 	if (!advanced)
 		*json_ptr = NULL;
 
