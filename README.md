@@ -143,7 +143,7 @@ but if you do, here are the details:
 |------------------|-----------|--------|-------------------------------|
 |`json_as_array()` |`NULL`     |`EINVAL`|input is not an array `[...]`	|
 |`json_as_object()`|`NULL`     |`EINVAL`|input is not an object `{...}`	|
-|`json_as_double()`|any        |`EINVAL`|input is a quoted string 	|
+|`json_as_double()`|any        |`EINVAL`|input is a quoted string	|
 |`json_as_double()`|`NAN`¹     |`EINVAL`|input is not a valid number	|
 |`json_as_double()`|±`HUGE_VAL`|`ERANGE`|number would overflow		|
 |`json_as_double()`|0²         |`ERANGE`|number would underflow		|
@@ -205,8 +205,14 @@ This is very fast.
 This function stores a "safe" C strings in the output buffer.
 A "safe" string contains only UTF-8 characters from the set
 { U+1 … U+D7FF, U+E000 … U+10FFFF }.
-This matches the definition from RFC 3629, with the single exception that
-it excludes NUL (U+0).
+This matches the definition from
+[RFC 3629](https://tools.ietf.org/html/rfc3629),
+with the single exclusion of NUL (U+0).
+
+Importantly, `json_as_str()` will rejects any input that
+requires storing an unsafe string.
+Instead, the function stores an empty string in the output buffer
+and sets `errno` to `EINVAL`.
 
 If you need to work with unsafe or malformed JSON strings, then use:
 
@@ -214,17 +220,32 @@ If you need to work with unsafe or malformed JSON strings, then use:
     size_t json_as_unsafe_str(const char *json, void *buf, size_t bufsz);
 ```
 
-This function maps malformed and difficult input bytes into codepoints from
+This function stores a "safe-ish" string in *buf*.
+This is the same as "safe" but with a further exception:
+malformed and difficult input bytes are mapped into codepoints in
 { U+DC00 … U+DCFF }.
-This is no longer compliant with RFC 3629,
-but it is reasonably safe to store,
-and the mapping can be later reversed by `json_string_from_unsafe_str()`.
+This is another deviation from RFC 3629,
+but it may be reasonably safe enough for you to store and use.
+The mapping also has the useful property that the
+original JSON input string will be recovered *exactly*
+by calling `json_string_from_unsafe_str()`.
 
-Buffer sizing is the caller's responsibility; if the buffer is too small,
-the string is truncated and the ideal buffer size is returned.
+If you are interested in byte-wise preservation of JSON input values,
+consider using `json_span()` and `memcpy()`, which will work even
+when the JSON value is not a string.
 
-If you would like the library to allocate the result string with
-`malloc()`, use:
+#### Sizing the output string buffer
+
+Providing an output buffer is the caller's responsibility.
+If the buffer provided is too small,
+then the stored string will be truncated (at a UTF-8 boundary)
+and the ideal buffer size will returned.
+
+A caller can pass zero as a buffer size,
+allocate a buffer using the returned value,
+and then re-call the function with the new buffer.
+
+This has been implemented already using `malloc()` as an allocator:
 
 ```c
     char * json_as_strdup(const char *json);
@@ -232,6 +253,9 @@ If you would like the library to allocate the result string with
 ```
 
 ### Decoding BASE-64 to bytes
+
+It is common to receive binary data as BASE-64 encoded strings
+[RFC 3548](https://tools.ietf.org/html/rfc3548).
 
 ```c
     int    json_as_bytes(const char *json, void *buf, size_t bufsz);
@@ -259,7 +283,7 @@ If you would like the library to allocate the result string with
 
 ## More
 
-See [json.h](json.h) for details.
+See [redjson.h](redjson.h) for details.
 
 Structure iterators
 
@@ -289,7 +313,9 @@ Miscellaneous
 
 ## Standards and extensions
 
-This parser implements RFC 7159 with the following extensions:
+This parser implements
+[RFC 7159](https://tools.ietf.org/html/rfc7159)
+with the following extensions:
 
 * Extra commas may be present at the end of arrays and objects
 * Single-quoted strings are supported.
@@ -305,7 +331,8 @@ This parser implements RFC 7159 with the following extensions:
 
 * No support for streaming
 * UTF-8 input only
-* Nested arrays and objects are limited to a combined depth of 32768
+* Nested arrays and objects are limited to a combined depth of 32768.
+  (approximately 4kB of stack is consumed by `json_span()` and `json_select()`)
 
 ## Design principles
 
@@ -317,11 +344,11 @@ This parser implements RFC 7159 with the following extensions:
   Error codes are reused from POSIX, API idioms from standard C library.
 * *Be safe:*
   Reject dangerous inputs (eg bad UTF-8).
-  Avoid all heap allocations.
+  Avoid dyamic allocations.
   Require the caller to manage their memory; ideally don't burden them at all.
   Avoid complicated interfaces; simpler interfaces lead to fewer bugs
   and don't waste the user's time.
 * *Encourage tolerance:*
-  Support for propagating clamped or error-mapped values.
-  That way simpler error checks can be performed at one place, later.
+  Support propagating clamped or error-mapped values;
+  single control paths are easier to understand.
 

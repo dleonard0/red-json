@@ -4,7 +4,7 @@
 /**
  * @mainpage Red JSON parser
  *
- * This is a lightweight, just-in-time parser for JSON (RFC 7159).
+ * This is a lightweight, just-in-time parser for JSON.
  *
  * Instead of converting all the JSON input into in-memory data structures,
  * you keep the source input as-is, and use the functions below to seek
@@ -16,8 +16,7 @@
  * JSON values interior to arrays and objects are represented by pointers
  * to where the value encoding begins.
  *
- * See README.md for more information.
- *
+ * @see redjson.h, README.md, RFC 7159.
  * @author David Leonard; released into Public Domain 2017
  */
 
@@ -318,10 +317,10 @@ int json_as_int(const __JSON char *json);
  *
  * Converts <code>true</code> and <code>false</code> to C values 1 and 0.
  *
- * Non-boolean input causes @c errno to be set to @c EINVAL,
- * and the return result approximated Javascript's "falsey" values.
- * Most non-boolean input is converted to 1 (true), but the following
- * values convert to 0:
+ * Converts non-boolean inputs according to
+ * Javascript's "falsey" rules, and sets @c errno to @c EINVAL.
+ *
+ * The following falsey values convert to 0:
  * <code>false</code>,
  * <code>null</code>,
  * <code>""</code>,
@@ -329,8 +328,9 @@ int json_as_int(const __JSON char *json);
  * <code>undefined</code>,
  * <code>NaN</code>,
  * and empty or @c NULL input.
+ * All other values convert to 1.
  *
- * Note that non-empty JSON strings convert to true [EINVAL], including
+ * Note that non-empty quoted JSON strings convert to true [EINVAL], including
  * <code>"false"</code> and <code>"0"</code>.
  *
  * @param json  (optional) JSON text
