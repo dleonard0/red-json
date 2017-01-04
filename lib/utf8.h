@@ -3,20 +3,27 @@
 
 #include <stdlib.h>
 
-/** unicode_t is a codepoint within the range U+0 .. U+10FFFF */
-typedef unsigned unicode_t;
+/** ucode is a Unicode code point within the range U+0 .. U+10FFFF */
+typedef unsigned int ucode;
 
 /**
- * A sanitized unicode character excludes characters from
- * {U+0,U+D800..U+DBFF,U+DD00..U+DFFF,U+110000..} and uses
- * U+DC00..U+DCFF to transport "invalid" bytes.
+ * A sanitized Unicode code point is a restriction into the subset
+ * {U+1..U+D7FF,U+DC00..U+DCFF,U+E000..U+10FFFF}.
+ * The codepoints U+DC00..U+DCFF are used to represent "invalid" bytes.
+ * U+0 is excluded for use as a string sentinel.
  *
  * In code, this is designated with the type
- * <code>__SANITIZED unicode_t</code>.
+ * <code>__SANITIZED ucode</code>.
  *
- * This encoding is slightly incompatible with RFC 3629's UTF-8 which
- * excludes the invalid range U+DC00..U+DCFF, and includes U+0.
- * @see #IS_UTF8_SAFE().
+ * This range restriction is slightly different to RFC 3629's UTF-8
+ * (and http://www.unicode.org/glossary/#unicode_scalar_value) which is
+ * {U+0..U+D7FF,U+E000..U+10FFFF}.
+ * @see #IS_UTF8_SAFE() for a standard USV check.
+ *
+ * Sanitized codepoints transcode losslessly with "dirty UTF-8",
+ * where codepoints from the U+DC00..U+DCFF range are mapped directly
+ * to invalid bytes in the encoding. In particular, UTF-8 0x00 encodes
+ * the sanitized value U+DC00.
  *
  * The lossless or invalid-byte-preserving translation technique is due to
  * Marcus Kuhn ("Substituting malformed UTF-8 sequences in a decoder", 2000).
@@ -35,10 +42,10 @@ typedef unsigned unicode_t;
 #define put_sanitized_utf8	_redjson_put_sanitized_utf8
 
 size_t get_utf8_raw_bounded(const char *p, const char *p_end,
-				unicode_t *u_return);
-size_t put_utf8_raw(unicode_t u, void *buf, int bufsz);
-__SANITIZED unicode_t
+				ucode *u_return);
+size_t put_utf8_raw(ucode u, void *buf, int bufsz);
+__SANITIZED ucode
        get_utf8_sanitized(const char **p_ptr);
-size_t put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, int bufsz);
+size_t put_sanitized_utf8(__SANITIZED ucode u, void *buf, int bufsz);
 
 #endif /* REDJSON_UTF8_H */

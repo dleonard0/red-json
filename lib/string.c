@@ -29,10 +29,10 @@ xdigit_as_int(char ch)
  * @retval 0 The input is not four hexadecimal digits.
  */
 static int
-four_xdigits(const __JSON char **json_ptr, unicode_t *u_return)
+four_xdigits(const __JSON char **json_ptr, ucode *u_return)
 {
 	const __JSON char *json;
-	unicode_t result;
+	ucode result;
 	unsigned i;
 
 	json = *json_ptr;
@@ -60,13 +60,13 @@ four_xdigits(const __JSON char **json_ptr, unicode_t *u_return)
  *
  * @param json_ptr  pointer to UTF-8 string position, always advanced
  *
- * @returns a sanitized unicode codepoint
+ * @returns a sanitized unicode ucode
  */
 static
-__SANITIZED unicode_t
+__SANITIZED ucode
 get_escaped_sanitized(const __JSON char **json_ptr)
 {
-	__SANITIZED unicode_t u;
+	__SANITIZED ucode u;
 	const __JSON char *after_backslash;
 
 	/* Although this function could return U+DC00 for NULs, if it
@@ -82,7 +82,7 @@ get_escaped_sanitized(const __JSON char **json_ptr)
 	switch (*(*json_ptr)++) {
 	    case 'u':
 	    {
-		unicode_t code;
+		ucode code;
 		if (!four_xdigits(json_ptr, &code))
 			break; /* \u???? */
 		if (!code)
@@ -94,8 +94,8 @@ get_escaped_sanitized(const __JSON char **json_ptr)
 			 * RFC7159 specifies handling of \u-escaped
 			 * surrogate pairs.
 			 */
-			unicode_t hi = code;
-			unicode_t lo;
+			ucode hi = code;
+			ucode lo;
 			if (*(*json_ptr)++ != '\\')
 				break;
 			if (*(*json_ptr)++ != 'u')
@@ -128,7 +128,7 @@ get_escaped_sanitized(const __JSON char **json_ptr)
 }
 
 /**
- * Puts a unicode codepoint, suitably string escaped, into the buffer.
+ * Puts a unicode ucode, suitably string escaped, into the buffer.
  *
  * @param u     sanitized code point
  * @param buf   output buffer
@@ -138,7 +138,7 @@ get_escaped_sanitized(const __JSON char **json_ptr)
  *          had there been enough space
  */
 static size_t
-put_sanitized_str_escaped(__SANITIZED unicode_t u, void *buf, int bufsz)
+put_sanitized_str_escaped(__SANITIZED ucode u, void *buf, int bufsz)
 {
 	char *out = buf;
 	char ch;
@@ -223,7 +223,7 @@ as_str(const __JSON char *json, void *buf, size_t bufsz, int flags)
 	}
 
 	while (*json && (quote ? (*json != quote) : is_word_char(*json))) {
-		__SANITIZED unicode_t u;
+		__SANITIZED ucode u;
 		if (quote)
 			u = get_escaped_sanitized(&json);
 		else
@@ -330,8 +330,8 @@ string_cmp(const __JSON char *json, const char *cstr, const char *cstr_end)
 
 	quote = *json++;
 	while (cstr < cstr_end) {
-		__SANITIZED unicode_t ju;
-		unicode_t su;
+		__SANITIZED ucode ju;
+		ucode su;
 		size_t n;
 
 		if (!*json || *json == quote)
@@ -415,7 +415,7 @@ string_from_strn(const char *src, int srclen,
 
 	OUT('"');
 	while (src < src_end) {
-		unicode_t u;
+		ucode u;
 		size_t n;
 
 		n = get_utf8_raw_bounded(src, src_end, &u);

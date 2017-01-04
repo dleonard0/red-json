@@ -21,7 +21,7 @@
  * @retval 0 The input is an overlong UTF-8 encoding.
  */
 static size_t
-get_utf8_raw(const char *p, unicode_t *u_return)
+get_utf8_raw(const char *p, ucode *u_return)
 {
 	if ((p[0] & 0x80) == 0x00) {
 		*u_return = p[0];		/* U+0000 .. U+007F */
@@ -78,7 +78,7 @@ get_utf8_raw(const char *p, unicode_t *u_return)
  * @retval 0 The input is a truncated UTF-8 encoding.
  */
 size_t
-get_utf8_raw_bounded(const char *p, const char *p_end, unicode_t *u_return)
+get_utf8_raw_bounded(const char *p, const char *p_end, ucode *u_return)
 {
 	size_t expected;
 
@@ -113,7 +113,7 @@ get_utf8_raw_bounded(const char *p, const char *p_end, unicode_t *u_return)
  * @retval 0 [EINVAL] The code point is too large, U+200000 or larger.
  */
 size_t
-put_utf8_raw(unicode_t u, void *buf, int bufsz)
+put_utf8_raw(ucode u, void *buf, int bufsz)
 {
 	unsigned char *out = buf;
 	int outlen = 0;
@@ -164,11 +164,11 @@ put_utf8_raw(unicode_t u, void *buf, int bufsz)
  * @returns a sanitized unicode character, always from the set
  *          {U+1..U+D7FF, U+DC00..U+DCFF, U+E000..U+10FFFF}
  */
-__SANITIZED unicode_t
+__SANITIZED ucode
 get_utf8_sanitized(const char **p_ptr)
 {
 	size_t n;
-	unicode_t u;
+	ucode u;
 
 	n = get_utf8_raw(*p_ptr, &u);
 	if (n == 0 || u == 0 || u > 0x10FFFF || IS_SURROGATE(u)) {
@@ -196,7 +196,7 @@ get_utf8_sanitized(const char **p_ptr)
  * @retval 0 [EINVAL] The code point is too large, U+200000 or larger.
  */
 size_t
-put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, int bufsz)
+put_sanitized_utf8(__SANITIZED ucode u, void *buf, int bufsz)
 {
 	if (IS_DCxx(u)) {
 		unsigned char *out = buf;
