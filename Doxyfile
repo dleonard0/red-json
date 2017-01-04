@@ -1,0 +1,39 @@
+
+# Invoke 'doxygen' to generate doxygen-doc/html/index.html
+
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "Red JSON"
+QUIET                  = YES
+
+INPUT                  = redjson.h
+ FILE_PATTERNS         = *.c *.h
+ EXCLUDE_PATTERNS      = t-*.c t-*.h
+ EXCLUDE_SYMBOLS       = _redjson_*
+ JAVADOC_AUTOBRIEF     = YES
+ TAB_SIZE              = 8
+
+OUTPUT_DIRECTORY       = doxygen-doc
+ EXTRACT_STATIC        = YES
+ OPTIMIZE_OUTPUT_FOR_C = YES
+ SOURCE_BROWSER        = NO
+ INLINE_SOURCES        = YES
+
+GENERATE_HTML          = YES
+ HTML_OUTPUT           = html
+ HTML_FILE_EXTENSION   = .html
+ HTML_HEADER           =
+ HTML_FOOTER           =
+ HTML_STYLESHEET       =
+ HTML_EXTRA_STYLESHEET =
+ HTML_EXTRA_FILES      =
+ GENERATE_TREEVIEW     = YES
+GENERATE_CHI           = NO
+GENERATE_QHP           = NO
+GENERATE_ECLIPSEHELP   = NO
+GENERATE_LATEX         = NO
+GENERATE_RTF           = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = NO
+GENERATE_AUTOGEN_DEF   = NO
+GENERATE_PERLMOD       = NO
+GENERATE_LEGEND        = YES
