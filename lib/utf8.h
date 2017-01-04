@@ -1,5 +1,5 @@
-#ifndef LIBJSON_UTF8_H
-#define LIBJSON_UTF8_H
+#ifndef REDJSON_UTF8_H
+#define REDJSON_UTF8_H
 
 #include <stdlib.h>
 
@@ -41,4 +41,4 @@ __SANITIZED unicode_t
        get_utf8_sanitized(const char **p_ptr);
 size_t put_sanitized_utf8(__SANITIZED unicode_t u, void *buf, int bufsz);
 
-#endif /* LIBJSON_UTF8_H */
+#endif /* REDJSON_UTF8_H */

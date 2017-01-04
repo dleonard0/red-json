@@ -1,5 +1,5 @@
-#ifndef LIBJSON_JSON_PRIVATE_H
-#define LIBJSON_JSON_PRIVATE_H
+#ifndef REDJSON_PRIVATE_H
+#define REDJSON_PRIVATE_H
 
 #include "redjson.h"
 
@@ -28,4 +28,4 @@ int skip_value(const __JSON char **json_ptr);
 int word_strcmpn(const __JSON char *json, const char *str, size_t strsz);
 int word_strcmp(const __JSON char *json, const char *str);
 
-#endif /* LIBJSON_JSON_PRIVATE_H */
+#endif /* REDJSON_PRIVATE_H */

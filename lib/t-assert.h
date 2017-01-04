@@ -1,5 +1,5 @@
-#ifndef LIBJSON_T_ASSERT_H
-#define LIBJSON_T_ASSERT_H
+#ifndef REDJSON_T_ASSERT_H
+#define REDJSON_T_ASSERT_H
 
 #include <stdio.h>
 #include <errno.h>
@@ -203,4 +203,4 @@ _assert_errnoeq(_assert_params, int a, int b)
                 assert_errnoeq(errno, expected_errno); \
         } while (0)
 
-#endif /* LIBJSON_T_ASSERT_H */
+#endif /* REDJSON_T_ASSERT_H */
