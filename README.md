@@ -161,12 +161,11 @@ but if you do, here are the details:
 |`json_as_strdup()`|`NULL`     |`ENOMEM`|call to `malloc()` failed	|
 |`json_as_bytes()` |-1         |`EINVAL`|input is not a BASE-64 string	|
 |`json_as_bytes()` |-1         |`ENOMEM`|output buffer is too small	|
-|`json_type()`     |`JSON_BAD` |        |input is not a JSON value	|
 |`json_span()`     |0          |`EINVAL`|input is not a JSON value	|
 |`json_span()`     |0          |`ENOMEM`|input is too deeply nested	|
 
 * ¹ a NAN result should be detected using the `isnan()` macro from `<math.h>`
-* ² This value may be returned with `errno` unchanged.
+* ² This value may be returned for valid inputs, leaving `errno` unchanged.
     To detect this, set `errno` to 0 before the call.
 
 All converters will treat `NULL` JSON as though it were empty input.
