@@ -30,7 +30,10 @@
 #define __JSON_ARRAYI  /**< Indicates pointer is an array iterator */
 #define __JSON_OBJECTI /**< Indicates pointer is an object iterator */
 
-#define REDJSON_API_VERSION 0x0001 /* major<<8 | minor */
+/** Interface version for this header. (major << 8 | minor) */
+#define REDJSON_API_VERSION 0x0001
+
+/** Implementation version for the library, eg "1.0" */
 extern const char redjson_lib_version[];
 
 /**
