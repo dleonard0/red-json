@@ -45,13 +45,11 @@ json_as_bool(const char *json)
 	if (strchr("+-0.N", *json)) {
 		double fp;
 		char *end = NULL;
-
+		/* NaN and 0 are falsey */
 		fp = strtod(json, &end);
 		errno = EINVAL; /* strtod() may have set it to ERANGE */
-		if (end && is_delimiter(*end)) {
-			/* NaN and 0 are falsey */
+		if (end && is_delimiter(*end))
 			return !(fp == 0 || isnan(fp));
-		}
 	}
 	/* null and undefined are falsey */
 	if (word_strcmp(json, json_null) == 0)

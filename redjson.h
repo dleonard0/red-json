@@ -331,18 +331,18 @@ int json_as_int(const __JSON char *json);
  * All other values convert to 1.
  *
  * Note that non-empty quoted JSON strings convert to true [EINVAL], including
- * <code>"false"</code> and <code>"0"</code>.
+ * <code>"false"</code>, <code>"undefined"</code> and <code>"0"</code>.
  *
  * @param json  (optional) JSON text
  *
  * @retval nonzero The value is <code>true</code>.
  * @retval 0 The value is <code>false</code>.
- * @retval 0 [EINVAL] The value is <code>null</code>.
- * @retval 0 [EINVAL] The value is <code>""</code> or <code>''</code>.
- * @retval 0 [EINVAL] The value is <code>0</code>.
- * @retval 0 [EINVAL] The value is <code>undefined</code>.
- * @retval 0 [EINVAL] The value is <code>NaN</code>.
- * @retval 0 [EINVAL] The value is @c NULL or empty, or looks falsey.
+ * @retval 0 [EINVAL] The value is <code>null</code>,
+ *                                 <code>""</code>, <code>''</code>,
+ *                                 <code>0</code>,
+ *                                 <code>undefined</code>,
+ *                                 <code>NaN</code>,
+ *                                 @c NULL or empty.
  * @retval nonzero [EINVAL] The value is not a boolean.
  */
 int json_as_bool(const __JSON char *json);

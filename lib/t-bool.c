@@ -14,6 +14,9 @@ main()
 	/* These convert to 'true' but signal EINVAL */
 	assert_errno(json_as_bool("something"), EINVAL);
 	assert_errno(json_as_bool("\"false\""), EINVAL);
+	assert_errno(json_as_bool("\"undefined\""), EINVAL);
+	assert_errno(json_as_bool("\"true\""), EINVAL);
+	assert_errno(json_as_bool("\"null\""), EINVAL);
 	assert_errno(json_as_bool("\"1\""), EINVAL);
 	assert_errno(json_as_bool("1"), EINVAL);
 	assert_errno(json_as_bool("0.1"), EINVAL);
@@ -34,6 +37,7 @@ main()
 	assert_errno(!json_as_bool("+0"), EINVAL);
 	assert_errno(!json_as_bool("0.0"), EINVAL);
 	assert_errno(!json_as_bool(".0"), EINVAL);
+	assert_errno(!json_as_bool("0."), EINVAL);
 	assert_errno(!json_as_bool("\"\""), EINVAL);
 	assert_errno(!json_as_bool("''"), EINVAL);
 
@@ -41,6 +45,12 @@ main()
 	assert_errno(!json_as_bool(""), EINVAL);
 	assert_errno(!json_as_bool(","), EINVAL);
 	assert_errno(!json_as_bool("   :"), EINVAL);
+
+	/* Edge cases for checking for 0/NaN */
+	assert_errno(json_as_bool("N"), EINVAL);
+	assert_errno(json_as_bool("."), EINVAL);
+	assert_errno(json_as_bool("+"), EINVAL);
+	assert_errno(json_as_bool("-"), EINVAL);
 
 	return 0;
 }
