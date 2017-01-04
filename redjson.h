@@ -239,21 +239,26 @@ size_t json_span(const __JSON char *json);
 /**
  * Converts JSON to a floating-point number.
  *
- * The conversion depends on the JSON text:
+ * The conversion depends on the JSON input:
  * <ul>
  * <li><code>true</code>, <code>false</code>, <code>null</code>,
- *     arrays, objects and EOS convert to NaN and set @c errno to @c EINVAL.
+ *     arrays, objects and invalid input
+ *     convert to NaN and set @c errno to @c EINVAL.
  * <li>JSON strings are converted using the next step after skipping the
- *     leading quote. Any escapes within the JSON string are
- *     left unexpanded.
+ *     leading quote. Escapes within the JSON string are
+ *     <em>not</em> expanded.
  * <li>JSON numbers are converted using your libc's @c strtod(),
- *     which may understand special sequences such as "Inf" or "NaN(7)".
- *     The JSON text is not canonicalized before calling @c strtod().
+ *     which may understand special sequences such as "Inf" or "NaN(7)",
+ *     or base prefixes such as "0x".
  * </ul>
+ *
+ * strictly a JSON number. However a best conversion is returned.
  *
  * @param json pointer to JSON text
  *
- * @returns the value converted to floating-pointer
+ * @returns the value converted to a floating-point nuumber, and
+ *          @c errno is set to @c EINVAL when the input is not
+ *          a strict a JSON number.
  * @retval  NAN [EINVAL] The JSON text is invalid or malformed.
  * @retval  HUGE_VAL [ERANGE] The value is too positive.
  * @retval -HUGE_VAL [ERANGE] The value is too negative.
@@ -264,25 +269,27 @@ double json_as_double(const __JSON char *json);
 /**
  * Converts JSON to a long integer.
  *
- * JSON values are converted as follows:
+ * The conversion depends on the JSON input:
  * <ul>
- * <li><code>true</code> converts to 1L
- * <li><code>false</code> converts to 0L
- * <li><code>null</code>, arrays, objects and EOS convert to 0L
- *     and set @c errno to @c EINVAL
- * <li>JSON strings are converted using the next step after skipping the
- *     leading quote. Any escapes within the JSON string are
- *     left unexpanded.
- * <li>JSON numbers are first converted using @c strtoul(). If this conversion
- *     ends at a '.', 'e' or 'E', then @c strtod() is used and its result
- *     is clamped to [@c LONG_MIN, @c LONG_MAX] and sets @c errno to @c ERANGE.
- *     Underflow from @c strtod() is ignored, and standard C truncation
- *     (rounding towards zero) is applied to get an integer.
+ * <li>JSON numbers are first converted using @c strtoul().
+ *     If this conversion does not end at a JSON delimiting character
+ *     (such as whitespace or a comma), it is restarted using
+ *     #json_as_double().  If the double result succeeds and exceeds
+ *     [@c LONG_MIN, @c LONG_MAX] the value is clamped and @c errno
+ *     is set to @c ERANGE.
+ *     C truncation (rounding towards zero) is applied to get an integer.
+ *     Underflow from @c strtod() is ignored.
+ * <li>For all other values, #json_as_double() is called.
+ *     A @c NAN result is translated to 0.
+ *     the same truncation and clamping rules are applied as above, and
+ *     @c errno is always set to @c EINVAL.
  * </ul>
  *
  * @param json  (optional) JSON text
  *
- * @returns the value converted to a long integer
+ * @returns the value converted to a long integer, and
+ *          @c errno is set to @c EINVAL when the input is not
+ *          a strict a JSON number.
  * @retval 0 [EINVAL] The JSON text is invalid, malformed or not a number.
  * @retval LONG_MIN [ERANGE] The number is too large.
  * @retval LONG_MAX [ERANGE] The number is too large.
@@ -297,7 +304,9 @@ long json_as_long(const __JSON char *json);
  *
  * @param json  (optional) JSON text
  *
- * @returns the value converted to an integer
+ * @returns the value converted to an integer, and
+ *          @c errno is set to @c EINVAL when the input is not
+ *          a strict a JSON number.
  * @retval 0 [EINVAL] The JSON text is invalid, malformed or not a number.
  * @retval INT_MIN [ERANGE] The number is too large.
  * @retval INT_MAX [ERANGE] The number is too large.

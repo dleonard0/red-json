@@ -174,6 +174,7 @@ All converters will treat `NULL` JSON as though it were empty input.
 #### Conversion between types
 
 Given a "wrong" input type, the converter functions will
+set `errno` but
 still return a reliable result:
 
 |JSON input|`json_as_`<br>`bool`|`json_as_`<br>`int`/`long`|`json_as_`<br>`double`|`json_as_`<br>`str`|`json_as_`<br>`array`|`json_as_`<br>`object`|`json_is_`<br>`null`|
@@ -181,14 +182,14 @@ still return a reliable result:
 |`false`       | false    |  0ⁱ   |NaNⁱ   |`"false"`ⁱ|[]ⁱ |{}ⁱ |no |
 |`true`        | true     |  0ⁱ   |NaNⁱ   |`"true"`ⁱ |[]ⁱ |{}ⁱ |no |
 |*number*      | ∉{0,NaN}ⁱ|strtolʳ|strtod |strcpyⁱ   |[]ⁱ |{}ⁱ |no |
-|`"`*string*`"`| ≠""ⁱ     |strtolⁱ|strtodⁱ|unescaped |[]ⁱ |{}ⁱ |no |
+|`"`*string*`"`| ≠""ⁱ     |strtodⁱ|strtodⁱ|unescaped |[]ⁱ |{}ⁱ |no |
 |`[`*array*`]` | trueⁱ    |  0ⁱ   |NaNⁱ   |`""`ⁱ     |iter|{}ⁱ |no |
 |`{`*object*`}`| trueⁱ    |  0ⁱ   |NaNⁱ   |`""`ⁱ     |[]ⁱ |iter|no |
 |`null`        | falseⁱ   |  0ⁱ   |NaNⁱ   |`"null"`ⁱ |[]ⁱ |{}ⁱ |yes|
-|*empty*       | falseⁱ   |  0ⁱ   |NaNⁱ   |`""`ⁱ     |[]ⁱ |{}ⁱ |no |
+|*empty/inval* | falseⁱ   |  0ⁱ   |NaNⁱ   |`""`ⁱ     |[]ⁱ |{}ⁱ |no |
 
+* ʳ falls back to strtod on failure
 * ⁱ sets `errno` to `EINVAL`
-* ʳ may set `errno` to `ERANGE`
 
 `json_as_bool()` implements the same "falsey" rules as Javascript.
 

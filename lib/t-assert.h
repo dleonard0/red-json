@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>		/* NAN, isnan() */
 
 #define cYELLOW  "\033[33m"
 #define cRED     "\033[31m"
@@ -90,7 +91,7 @@ _assert_memeq(_assert_params, const char *n_arg, const char *a, const char *b, s
 	}
 }
 
-/* A macro to assert two C strings are not NULL and have equal content */
+/* A macro to assert two integers have equal value */
 #define assert_inteq(a,b) _assert_inteq(_assert_args(#a, #b), a, b)
 inline void
 _assert_inteq(_assert_params, int a, int b)
@@ -99,6 +100,37 @@ _assert_inteq(_assert_params, int a, int b)
 	    fprintf(stderr,
 	       "%s: %d: assertion failure assert_inteq(%s, %s)\n"
 	       "\t%s => %d\n\t%s => %d\n",
+		file, line, a_arg, b_arg,
+		a_arg, a,  b_arg, b);
+	    abort();
+	}
+}
+
+/* A macro to assert two long integers have equal value */
+#define assert_longeq(a,b) _assert_longeq(_assert_args(#a, #b), a, b)
+inline void
+_assert_longeq(_assert_params, long a, long b)
+{
+	if (a != b) {
+	    fprintf(stderr,
+	       "%s: %d: assertion failure assert_longeq(%s, %s)\n"
+	       "\t%s => %ld\n\t%s => %ld\n",
+		file, line, a_arg, b_arg,
+		a_arg, a,  b_arg, b);
+	    abort();
+	}
+}
+
+/* A macro to assert two doubles have equal value.
+ * Comparing with NAN is OK */
+#define assert_doubleeq(a,b) _assert_doubleeq(_assert_args(#a, #b), a, b)
+inline void
+_assert_doubleeq(_assert_params, double a, double b)
+{
+	if (isnan(a) ? !isnan(b) : isnan(b) ? !isnan(a) : a != b) {
+	    fprintf(stderr,
+	       "%s: %d: assertion failure assert_doubleeq(%s, %s)\n"
+	       "\t%s => %f\n\t%s => %f\n",
 		file, line, a_arg, b_arg,
 		a_arg, a,  b_arg, b);
 	    abort();
@@ -122,12 +154,53 @@ _assert_chareq(_assert_params, char a, char b)
 	}
 }
 
+/* A macro to assert two errno's have equal value */
+#define assert_errnoeq(a,b) _assert_errnoeq(_assert_args(#a, #b), a, b)
+inline void
+_assert_errnoeq(_assert_params, int a, int b)
+{
+	if (a != b) {
+	    fprintf(stderr,
+	       "%s: %d: assertion failure assert_errnoeq(%s, %s)\n"
+	       "\t%s => %d (%s)\n",
+		file, line, a_arg, b_arg,
+		a_arg, a, a ? strerror(a) : "");
+	    fprintf(stderr, "\t%s => %d (%s)\n",
+	        b_arg, b, b ? strerror(b) : "");
+	    abort();
+	}
+}
+
 /* A macro to clear errno, then test it has certain value */
 #define assert_errno(e, expected_errno) \
         do { \
                 errno = 0; \
                 assert(e); \
-                assert_inteq(errno, expected_errno); \
+                assert_errnoeq(errno, expected_errno); \
+        } while (0)
+
+/* Combines testing for integer equality and errno result */
+#define assert_inteq_errno(a, b, expected_errno) \
+        do { \
+                errno = 0; \
+                assert_inteq(a, b); \
+                assert_errnoeq(errno, expected_errno); \
+        } while (0)
+
+/* Combines testing for long integer equality and errno result */
+#define assert_longeq_errno(a, b, expected_errno) \
+        do { \
+                errno = 0; \
+                assert_longeq(a, b); \
+                assert_errnoeq(errno, expected_errno); \
+        } while (0)
+
+/* Combines testing for double equality and errno result */
+#define assert_doubleeq_errno(a, b, expected_errno) \
+        do { \
+                errno = 0; \
+                assert_doubleeq(a, b); \
+                assert_errnoeq(errno, expected_errno); \
         } while (0)
 
 #endif /* LIBJSON_T_ASSERT_H */
