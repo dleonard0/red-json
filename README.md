@@ -254,7 +254,7 @@ This has been implemented already using `malloc()` as an allocator:
 
 ### Decoding BASE-64 to bytes
 
-It is common to receive binary data as BASE-64 encoded strings
+It is common to receive binary data as BASE-64 encoded strings, per
 [RFC 3548](https://tools.ietf.org/html/rfc3548).
 
 ```c

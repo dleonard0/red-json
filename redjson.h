@@ -530,8 +530,11 @@ int json_from_bytes(const void *src, size_t srcsz,
 
 /** Calculates the output buffer size for #json_from_bytes().
  *  @param srcsz length of the source in bytes
+ *  @returns size of a buffer required to hold a NUL-terminated
+ *           JSON string containing the BASE-64 encoding of the
+ *           source bytes.
  */
-#define JSON_FROM_BYTES_DSTSZ(srcsz)   (3 + ((srcsz + 2) / 3) * 4)
+#define JSON_FROM_BYTES_DSTSZ(srcsz)   (3 + (((srcsz) + 2) / 3) * 4)
 
 /**
  * Converts a UTF-8 C string into a quoted JSON string.
