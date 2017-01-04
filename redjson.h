@@ -83,7 +83,8 @@ const __JSON char *json_select(const __JSON char *json, const char *path, ...)
     __attribute__((format(printf,2,3)));
 
 /** @see #json_select() */
-const __JSON char *json_selectv(const __JSON char *json, const char *path, va_list ap);
+const __JSON char *json_selectv(const __JSON char *json, const char *path,
+    va_list ap);
 
 /* Convenience macros */
 #define json_select_int(...)    json_as_int(json_select(__VA_ARGS__))

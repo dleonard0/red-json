@@ -77,7 +77,8 @@ _assert_streq(_assert_params, const char *a, const char *b, const char *ext)
 /* A macro to assert two byte arrays are not NULL and have equal content */
 #define assert_memeq(a,b,n) _assert_memeq(_assert_args(#a, #b), #n, a, b, n)
 inline void
-_assert_memeq(_assert_params, const char *n_arg, const char *a, const char *b, size_t n)
+_assert_memeq(_assert_params, const char *n_arg, const char *a, const char *b,
+    size_t n)
 {
 	if (!a || !b || memcmp(a, b, n) != 0) {
 	    fprintf(stderr,

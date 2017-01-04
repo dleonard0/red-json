@@ -148,8 +148,10 @@ json_select(const __JSON char *json, const char *path, ...)
 IMPL_DEFAULT_SELECT(json_default_select_int, int, json_as_int)
 IMPL_DEFAULT_SELECT(json_default_select_bool, int, json_as_bool)
 IMPL_DEFAULT_SELECT(json_default_select_double, double, json_as_double)
-IMPL_DEFAULT_SELECT(json_default_select_array, const __JSON_ARRAYI char *, json_as_array)
-IMPL_DEFAULT_SELECT(json_default_select_object, const __JSON_OBJECTI char *, json_as_object)
+IMPL_DEFAULT_SELECT(json_default_select_array, const __JSON_ARRAYI char *,
+    json_as_array)
+IMPL_DEFAULT_SELECT(json_default_select_object, const __JSON_OBJECTI char *,
+    json_as_object)
 
 __PUBLIC
 char *
