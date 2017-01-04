@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "redjson_private.h"
+#include "private.h"
 
 __PUBLIC
 const char json_true[] = "true";

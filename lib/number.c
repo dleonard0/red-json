@@ -3,7 +3,7 @@
 #include <math.h>		/* C99's isnan() and NAN are macros */
 #include <limits.h>		/* {INT,LONG}_{MIN,MAX} */
 
-#include "redjson_private.h"
+#include "private.h"
 
 /* Const-corrected strtod */
 static double

@@ -1,6 +1,6 @@
 #include <errno.h>
 
-#include "redjson_private.h"
+#include "private.h"
 #include "utf8.h"
 
 /**

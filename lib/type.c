@@ -1,6 +1,6 @@
 #include <ctype.h>
 
-#include "redjson_private.h"
+#include "private.h"
 
 __PUBLIC
 enum json_type

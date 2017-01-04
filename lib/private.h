@@ -1,7 +1,7 @@
 #ifndef REDJSON_PRIVATE_H
 #define REDJSON_PRIVATE_H
 
-#include "redjson.h"
+#include "../redjson.h"
 
 /* Marks as function as exported from the library */
 #define __PUBLIC /* indicates the function is part of public API */

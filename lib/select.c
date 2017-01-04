@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <string.h>
 
-#include "redjson_private.h"
+#include "private.h"
 
 __PUBLIC
 const __JSON char *
