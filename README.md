@@ -143,7 +143,7 @@ but if you do, here are the details:
 |------------------|-----------|--------|-------------------------------|
 |`json_as_array()` |`NULL`     |`EINVAL`|input is not an array `[...]`	|
 |`json_as_object()`|`NULL`     |`EINVAL`|input is not an object `{...}`	|
-|`json_as_double()`|any        |`EINVAL`|input is a quoted string	|
+|`json_as_double()`|*n*        |`EINVAL`|input is almost a valid number	|
 |`json_as_double()`|`NAN`¹     |`EINVAL`|input is not a valid number	|
 |`json_as_double()`|±`HUGE_VAL`|`ERANGE`|number would overflow		|
 |`json_as_double()`|0²         |`ERANGE`|number would underflow		|
@@ -153,11 +153,11 @@ but if you do, here are the details:
 |`json_as_int()`   |0²         |`EINVAL`|input is not a number		|
 |`json_as_int()`   |`INT_MIN`² |`ERANGE`|negative number is too big	|
 |`json_as_int()`   |`INT_MAX`² |`ERANGE`|positive number is too big	|
-|`json_as_bool()`  |true²      |`EINVAL`|input is not a boolean		|
-|`json_as_bool()`  |false²     |`EINVAL`|input is a falsey non-boolean  |
-|`json_as_str()`   |0          |`EINVAL`|input is not a string		|
+|`json_as_bool()`  |true²      |`EINVAL`|input is not boolean		|
+|`json_as_bool()`  |false²     |`EINVAL`|input is not boolean but looks falsey|
+|`json_as_str()`   |0          |`EINVAL`|input is not a safe string	|
 |`json_as_str()`   |0          |`ENOMEM`|output buffer was too small	|
-|`json_as_strdup()`|`NULL`     |`EINVAL`|input is not a string		|
+|`json_as_strdup()`|`NULL`     |`EINVAL`|input is not a safe string	|
 |`json_as_strdup()`|`NULL`     |`ENOMEM`|call to `malloc()` failed	|
 |`json_as_bytes()` |-1         |`EINVAL`|input is not a BASE-64 string	|
 |`json_as_bytes()` |-1         |`ENOMEM`|output buffer is too small	|
@@ -172,9 +172,12 @@ All converters will treat `NULL` JSON as though it were empty input.
 
 #### Conversion between types
 
-Given a "wrong" input type, the converter functions will
-set `errno` but
-still return a reliable result:
+Given a "wrong" input type,
+a converter functions will set `errno` to `EINVAL` then
+return a (hopefully) unsurprising result.
+Here is a table of those results.
+It summarises what each function along the top will return
+when given the JSON input from the first column.
 
 |JSON input|`json_as_`<br>`bool`|`json_as_`<br>`int`/`long`|`json_as_`<br>`double`|`json_as_`<br>`str`|`json_as_`<br>`array`|`json_as_`<br>`object`|`json_is_`<br>`null`|
 |--------------|----------|-------|-------|----------|----|----|---|
@@ -192,9 +195,10 @@ still return a reliable result:
 
 `json_as_bool()` implements the same "falsey" rules as Javascript.
 
-You can also call `json_type()` to guess the type of a value from its
-first non-whitespace character.
-This is very fast.
+Instead of checking for `EINVAL`,
+you can call `json_type()` to guess the type of a value
+(from its first non-whitespace character),
+and use that to choose the converter to call.
 
 ### String conversion
 
@@ -204,15 +208,19 @@ This is very fast.
 
 This function stores a "safe" C strings in the output buffer.
 A "safe" string contains only UTF-8 characters from the set
-{ U+1 … U+D7FF, U+E000 … U+10FFFF }.
-This matches the definition from
+{ U+1 … U+D7FF, U+E000 … U+10FFFF },
+and thus completely falls within the definitions of
 [RFC 3629](https://tools.ietf.org/html/rfc3629),
-with the single exclusion of NUL (U+0).
+except that NUL (U+0) is reserved for use as a string terminator.
 
-Importantly, `json_as_str()` will rejects any input that
-requires storing an unsafe string.
-Instead, the function stores an empty string in the output buffer
-and sets `errno` to `EINVAL`.
+It is important to note that `json_as_str()` will *reject* any input that
+has invalid UTF-8 bytes or would require the storing of an unsafe UTF-8
+codepoint in the output.
+Rejection means the function stores an empty string in the output buffer,
+sets `errno` to `EINVAL`
+and returns 0.
+For example, the following inputs will be rejected:
+`"\u0000"`, `"\ud800"`, &lt;22 C0 A0 22&gt; (an overlong U+20 in quotes).
 
 If you need to work with unsafe or malformed JSON strings, then use:
 
@@ -220,32 +228,36 @@ If you need to work with unsafe or malformed JSON strings, then use:
     size_t json_as_unsafe_str(const char *json, void *buf, size_t bufsz);
 ```
 
-This function stores a "safe-ish" string in *buf*.
-This is the same as "safe" but with a further exception:
+This function stores a "safe-ish" string in *buf* without rejecting any input.
+"Safe-ish" is the same as "safe" but with a further exception:
 malformed and difficult input bytes are mapped into codepoints in
-{ U+DC00 … U+DCFF }.
-This is another deviation from RFC 3629,
-but it may be reasonably safe enough for you to store and use.
-The mapping also has the useful property that the
-original JSON input string will be recovered *exactly*
+{ U+DC00 … U+DCFF },
+use of which are prohibited by RFC 3629.
+Theses may be safe enough to use for storage and recall, because
+the mapping also has the useful property that the
+original JSON input string can be recovered *exactly*
 by calling `json_string_from_unsafe_str()`.
+However, you are courting danger.
 
 If you are interested in byte-wise preservation of JSON input values,
-consider using `json_span()` and `memcpy()`, which will work even
-when the JSON value is not a string.
+consider using `json_span()` and `memcpy()`.
+These will work even when the JSON value is not a string.
 
 #### Sizing the output string buffer
 
 Providing an output buffer is the caller's responsibility.
 If the buffer provided is too small,
-then the stored string will be truncated (at a UTF-8 boundary)
+then the stored string will be truncated at the UTF-8 boundary
+nearest the end of the buffer,
 and the ideal buffer size will returned.
 
-A caller can pass zero as a buffer size,
+To dynamically allocate the buffer,
+the caller can specify a buffer size of 0,
 allocate a buffer using the returned value,
 and then re-call the function with the new buffer.
-
-This has been implemented already using `malloc()` as an allocator:
+This has been implemented already,
+using `malloc()`,
+by these convenience functions:
 
 ```c
     char * json_as_strdup(const char *json);
