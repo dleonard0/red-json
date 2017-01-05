@@ -53,10 +53,12 @@ main()
 	/* Clamping at boundaries works */
 	assert_inteq_errno(json_as_int(fmt("%d", INT_MAX)), INT_MAX, 0);
 	assert_inteq_errno(json_as_int(fmt("%d", INT_MIN)), INT_MIN, 0);
+#if LONG_MAX > INT_MAX
 	assert_inteq_errno(json_as_int(fmt("%ld", 1L+INT_MAX)), INT_MAX,ERANGE);
 	assert_inteq_errno(json_as_int(fmt("%ld", -1L+INT_MIN)),INT_MIN,ERANGE);
 	assert_inteq_errno(json_as_int(fmt("%ld", LONG_MAX)), INT_MAX, ERANGE);
 	assert_inteq_errno(json_as_int(fmt("%ld", LONG_MIN)), INT_MIN, ERANGE);
+#endif
 	assert_inteq_errno(json_as_int(fmt("%u", UINT_MAX)), INT_MAX, ERANGE);
 	assert_inteq_errno(json_as_int(fmt("-%u", UINT_MAX)), INT_MIN, ERANGE);
 
