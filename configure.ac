@@ -10,7 +10,7 @@ AM_INIT_AUTOMAKE([foreign
 		  -Wall -Werror
 		  ])
 
-AC_PROG_CC
+AM_PROG_CC_C_O
 AM_PROG_AR
 
 LT_INIT

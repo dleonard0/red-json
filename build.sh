@@ -2,7 +2,7 @@
 
 set -ex
 mkdir -p m4
-autoreconf -i
+autoreconf -v -i
 rm -rf build
 mkdir build
 cd build
@@ -10,4 +10,4 @@ cd build
   --enable-silent-rules \
   CFLAGS="-O -ggdb -Wall"
 
-make check VERBOSE=t
+make check V=1 VERBOSE=t
