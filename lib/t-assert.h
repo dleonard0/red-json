@@ -64,7 +64,7 @@ _assert_streq(_assert_params, const char *a, const char *b, const char *ext)
 {
 	if (!a || !b || strcmp(a, b) != 0) {
 	    fprintf(stderr,
-	       "%s: %d: assertion failure assert_streq(%s, %s) %s\n"
+	       "%s:%d: assertion failure assert_streq(%s, %s) %s\n"
 	       "\t%s => ", file, line, a_arg, b_arg, ext, a_arg);
 	    fputs_esc(a, stderr);
 	    fprintf(stderr, "\n\t%s => ", b_arg);
@@ -82,7 +82,7 @@ _assert_memeq(_assert_params, const char *n_arg, const char *a, const char *b,
 {
 	if (!a || !b || memcmp(a, b, n) != 0) {
 	    fprintf(stderr,
-	       "%s: %d: assertion failure assert_streq(%s, %s, %s)\n"
+	       "%s:%d: assertion failure assert_streq(%s, %s, %s)\n"
 	       "\t%s => ", file, line, a_arg, b_arg, n_arg, a_arg);
 	    fputary(a, n, stderr);
 	    fprintf(stderr, "\n\t%s => ", b_arg);
@@ -99,7 +99,7 @@ _assert_inteq(_assert_params, int a, int b)
 {
 	if (a != b) {
 	    fprintf(stderr,
-	       "%s: %d: assertion failure assert_inteq(%s, %s)\n"
+	       "%s:%d: assertion failure assert_inteq(%s, %s)\n"
 	       "\t%s => %d\n\t%s => %d\n",
 		file, line, a_arg, b_arg,
 		a_arg, a,  b_arg, b);
@@ -114,7 +114,7 @@ _assert_longeq(_assert_params, long a, long b)
 {
 	if (a != b) {
 	    fprintf(stderr,
-	       "%s: %d: assertion failure assert_longeq(%s, %s)\n"
+	       "%s:%d: assertion failure assert_longeq(%s, %s)\n"
 	       "\t%s => %ld\n\t%s => %ld\n",
 		file, line, a_arg, b_arg,
 		a_arg, a,  b_arg, b);
@@ -130,7 +130,7 @@ _assert_doubleeq(_assert_params, double a, double b)
 {
 	if (isnan(a) ? !isnan(b) : isnan(b) ? !isnan(a) : a != b) {
 	    fprintf(stderr,
-	       "%s: %d: assertion failure assert_doubleeq(%s, %s)\n"
+	       "%s:%d: assertion failure assert_doubleeq(%s, %s)\n"
 	       "\t%s => %f\n\t%s => %f\n",
 		file, line, a_arg, b_arg,
 		a_arg, a,  b_arg, b);
@@ -145,7 +145,7 @@ _assert_chareq(_assert_params, char a, char b)
 {
 	if (a != b) {
 	    fprintf(stderr,
-	       "%s: %d: assertion failure assert_chareq(%s, %s)\n"
+	       "%s:%d: assertion failure assert_chareq(%s, %s)\n"
 	       "\t%s => '", file, line, a_arg, b_arg, a_arg);
 	    fputc_esc(a, stderr);
 	    fprintf(stderr, "'\n\t%s => '", b_arg);
@@ -162,7 +162,7 @@ _assert_errnoeq(_assert_params, int a, int b)
 {
 	if (a != b) {
 	    fprintf(stderr,
-	       "%s: %d: assertion failure assert_errnoeq(%s, %s)\n"
+	       "%s:%d: assertion failure assert_errnoeq(%s, %s)\n"
 	       "\t%s => %d (%s)\n",
 		file, line, a_arg, b_arg,
 		a_arg, a, a ? strerror(a) : "");
