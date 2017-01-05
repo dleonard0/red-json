@@ -12,6 +12,8 @@ A just-in-time, lightweight JSON parser for C.
   On mismatch/error they will set `errno` to `EINVAL`
   and return a best-effort or unsurprising value.
 
+[![Build Status](https://travis-ci.org/dleonard0/red-json.svg?branch=master)](https://travis-ci.org/dleonard0/red-json)
+
 ## Examples
 
 Let's convert some numbers:
