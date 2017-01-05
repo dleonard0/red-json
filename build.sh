@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -ex
+mkdir -p m4
 autoreconf -i
 rm -rf build
 mkdir build
