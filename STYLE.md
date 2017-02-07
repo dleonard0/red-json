@@ -7,12 +7,22 @@ except for the differences noted below.
 
 ## Differences to style(9)
 
-When testing a pointer for NULL, rely on conversion to boolean.
+When testing a pointer for NULL,
+you may rely on conversion to boolean.
 That is, use `if (p)` or `if (!p)`.
+This is preferred when NULL is being used to form a monad type;
+that is where `if (p)` can be read as "if p exists".
 
 `sizeof` is a keyword and is followed by a space.
-Do not parenthesize its argument unless it is a type,
-or a complicated expression.
+Do not parenthesize its argument,
+unless it is a type or a confusing expression.
+The reason for this is that `sizeof` never evaluates its argument,
+and treating `sizeof` as though it were a function
+implies a consistency where there is none.
+
+Function prototypes should name their arguments.
+This is required for doxygen-style documentation
+and assists integrated editors.
 
 ## Clarifications to style(9)
 

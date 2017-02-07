@@ -21,33 +21,41 @@ Let's convert some numbers:
 ```c
     #include <redjson.h>
 
-    double x = json_as_double("1.24e8");
-    double n = json_as_double(NULL); /* NAN, errno==EINVAL */
-    int i = json_as_int("9.26e1"); /* 92 */
+    double a = json_as_double("1.24e8");              /* 124000000 */
+    double b = json_as_double(NULL);                  /* NAN, errno==EINVAL */
+    int c = json_as_int("9.26e1");                    /* 92 */
+    int d = json_select_int("[true,5,{}]", "[1]");    /* 5 */
 ```
 
 Iterate over an array:
 
 ```c
-    const char *iter;
-    const char *elem;
+    const char *iter;                                 /* Iterator state */
+    const char *elem;                                 /* Loop variable */
 
-    iter = json_as_array("[1, 2, null, []]");
+    iter = json_as_array("[1, 2, null, []]");         /* Starts iterator */
     while ((elem = json_array_next(&iter)))
-        printf("%d\n", json_as_int(elem));    /* could check for 0/EINVAL */
+        printf("%d ", json_as_int(elem));
+
+    /* Output: 1 2 0 0 */
 ```
 
 Search within a structure using a Javascript-like selector:
 
 ```c
-    extern const char *input;   /* See the hotel JSON below */
+    extern const char *input;                         /* See hotel JSON below */
     const char *cook;
 
-    cook = json_select(input, "hotel[1].cook"); /* Now points to { after cook: */
+    cook = json_select(input, "hotel[1].cook");       /* Points to { after "cook": */
 
     printf("The cook's age is %d\n", json_select_int(cook, "age"));
-    for (unsigned i = 0; i < 5; i++)
+    for (unsigned i = 0; i < 3; i++)
         printf("score #%u: %d\n", i, json_select_int(cook, "scores[%u]", i));
+
+    /* Output: The cook's age is 91
+               score #0: 4
+               score #1: 5
+               score #2: 1           */
 ```
 
 ```json
@@ -59,7 +67,7 @@ Search within a structure using a Javascript-like selector:
                     "name": "Mr LeChe\ufb00",
                     "age": 91,
                     "cuisine": "Fish and chips",
-                    "scores": [ 4, 5, 1, 9, 0 ]
+                    "scores": [ 4, 5, 1 ]
                 },
             }
         ]
@@ -71,9 +79,11 @@ Let's print safe, UTF-8 strings:
 ```c
     char buf[1024];
 
-    /* buf is reliably NUL-terminated, even on error */
+    /* buf will always be NUL-terminated, even on error */
     if (json_as_str(json_select(cook, "name"), buf, sizeof buf))
         printf("The cook's name is %s\n", buf);
+
+    /* Output: The cook's name is Mr LeCheﬀ */
 ```
 
 Or get your strings on the heap:
@@ -84,6 +94,8 @@ Or get your strings on the heap:
         printf("Enjoy your %s\n", cuisine);
         free(cuisine);
     }
+
+    /* Output: Enjoy your Fish and chips */
 ```
 
 Sometimes you just want to compare a string:
@@ -157,8 +169,8 @@ but if you do, here are the details:
 |`json_as_int()`   |`INT_MAX`² |`ERANGE`|positive number is too big	|
 |`json_as_bool()`  |true²      |`EINVAL`|input is not boolean		|
 |`json_as_bool()`  |false²     |`EINVAL`|input is not boolean but looks falsey|
-|`json_as_str()`   |0          |`EINVAL`|input is not a safe string	|
-|`json_as_str()`   |0          |`ENOMEM`|output buffer was too small	|
+|`json_as_str()`   |*size*     |`EINVAL`|input is not a safe string	|
+|`json_as_str()`   |*size*     |`ENOMEM`|output buffer was too small	|
 |`json_as_strdup()`|`NULL`     |`EINVAL`|input is not a safe string	|
 |`json_as_strdup()`|`NULL`     |`ENOMEM`|call to `malloc()` failed	|
 |`json_as_bytes()` |-1         |`EINVAL`|input is not a BASE-64 string	|
@@ -208,48 +220,53 @@ and use that to choose the converter to call.
     size_t json_as_str(const char *json, void *buf, size_t bufsz);
 ```
 
-This function stores a "safe" C strings in the output buffer.
-A "safe" string contains only UTF-8 characters from the set
-{ U+1 … U+D7FF, U+E000 … U+10FFFF },
-and thus completely falls within the definitions of
-[RFC 3629](https://tools.ietf.org/html/rfc3629),
-except that NUL (U+0) is reserved for use as a string terminator.
+This function stores a "safe" C string in the output buffer *buf*.
+A "safe" string consists only of UTF-8 characters permitted by
+[RFC 3629](https://tools.ietf.org/html/rfc3629)
+but excluding NUL (U+0) which is always present as the string terminator.
 
-It is important to note that `json_as_str()` will *reject* any input that
-has invalid UTF-8 bytes or would require the storing of an unsafe UTF-8
-codepoint in the output.
-Rejection means the function stores an empty string in the output buffer,
-sets `errno` to `EINVAL`
-and returns 0.
-For example, the following inputs will be rejected:
-`"\u0000"`, `"\ud800"`, &lt;22 C0 A0 22&gt; (an overlong U+20 in quotes).
+`json_as_str()` will NUL-truncate the output at the first point where the input
+* has a malformed or overlong UTF-8 encoding (`EINVAL`), or
+* would require the storing of an unsafe UTF-8 codepoint in
+  the output (`EINVAL`), or
+* would otherwise exceed the size of the output buffer (`ENOMEM`).
 
-If you need to work with unsafe or malformed JSON strings, then use:
+Examples of partial inputs where `json_as_str()` will terminate
+conversion are:
+`\u0000`, `\ud800` and `<C0 A0>` (an overlong SPC).
+
+#### Sanitized strings
+
+If you need to work with unsafe or malformed JSON input, then use:
 
 ```c
     size_t json_as_unsafe_str(const char *json, void *buf, size_t bufsz);
 ```
 
-This function stores a "safe-ish" string in *buf* without rejecting any input.
-"Safe-ish" is the same as "safe" but with a further exception:
-malformed and difficult input bytes are mapped into codepoints in
-{ U+DC00 … U+DCFF },
-use of which are prohibited by RFC 3629.
-Theses may be safe enough to use for storage and recall, because
-the mapping also has the useful property that the
-original JSON input string can be recovered *exactly*
-by calling `json_string_from_unsafe_str()`.
-However, you are courting danger.
+This function does not reject any inputs,
+storing a "sanitized" UTF-8 string in *buf*.
+"Sanitized" is the same as "safe" but
+with the addition of unsafe codepoints { U+DC00 … U+DCFF }
+onto which are mapped all malformed and "difficult" input bytes.
+For example, the overlong `<C0 A0>` is santized to `<U+DCC0><U+DCA0>`
+and `\u0000` is sanitized to `<U+DC5C>u0000`.
 
-If you are interested in byte-wise preservation of JSON input values,
-consider using `json_span()` and `memcpy()`.
-These will work even when the JSON value is not a string.
+"Sanitized" strings are an extension of
+[Kuhn's UTF-8b](http://hyperreal.org/~est/utf-8b/releases/utf-8b-20060413043934/kuhn-utf-8b.html)
+and are incompatible with RFC 3629 or
+[Unicode Scalar Values](http://www.unicode.org/glossary/#unicode_scalar_value).
+They have the useful property that the
+original input string can be recovered exactly
+(and `json_string_from_unsafe_str()` does precisely that).
+Byte-wise preservation of uninterpreted JSON input can
+also be performed using `json_span()` and `memcpy()`,
+which works even when the JSON input is not a quoted string.
 
 #### Sizing the output string buffer
 
 Providing an output buffer is the caller's responsibility.
 If the buffer provided is too small,
-then the stored string will be truncated at the UTF-8 boundary
+then the stored string will be NUL-truncated at the UTF-8 boundary
 nearest the end of the buffer,
 and the ideal buffer size will returned.
 

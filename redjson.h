@@ -368,22 +368,21 @@ int json_is_null(const __JSON char *json);
  * The conversion to string depends on the type of source JSON value:
  * <ul><li>quoted strings: as described below
  *     <li>objects and arrays: empty string [EINVAL]
- *     <li>missing tokens, NULL: empty string [EINVAL]
+ *     <li>missing values, @c NULL: empty string [EINVAL]
  *     <li>boolean, numbers, <code>null</code>, other words: as if quoted,
  *         but escape sequences are ignored
  * </ul>
  *
- * JSON quoted strings are converted into NUL-terminated, shortest-form
- * UTF-8 C strings, unless they are 'unsafe'.
+ * JSON quoted strings are always converted into NUL-terminated,
+ * shortest-form UTF-8 C strings.
  *
- * A JSON string is 'unsafe' if it contains
- * <ul><li>an overlong UTF-8 encoding (eg C0 80 for U+0);
- *     <li>a sequence that decodes to any codepoint in the
- *         unsafe codepoint set, {U+0, U+D800..U+DFFF, U+110000..};
- *     <li>an escape sequence that would decode to an unsafe codepoint
+ * Truncation will occur (and @c errno will be set to @c EINVAL), if
+ * processing input encounters
+ * <ul><li>an invalid or overlong UTF-8 input (eg C0 80 for U+0);
+ *     <li>an input sequence (including escapes) that would decode
+ *         to a codepoint outside the
+ *         safe codepoint set, {U+1..U+D7FF, U+E000..U+10FFFF};
  * </ul>
- * 'Unsafe' input strings convert to an empty output string and set
- * @c errno to @c ERANGE.
  *
  * If @a bufsz is zero, the function operates in "size request mode,
  * and computes the minimum buffer size needed to hold the result.
@@ -392,27 +391,17 @@ int json_is_null(const __JSON char *json);
  * output is truncated at the nearest UTF-8 sequence boundary such that
  * a terminating NUL byte can be written.
  *
- * A non-zero return value will always indicate the minimum buffer size
- * required.
- *
- * On error, this function returns 0 and sets @c errno to @c EINVAL. It
- * will fill the output buffer with a best-effort nul-terminated translation,
- * storing unsafe codepoints as U+FFFD.
- *
  * @param json  (optional) input JSON text
  * @param buf   storage for the returned UTF-8 string.
  *              This will always be NUL-terminated if @a bufsz > 0,
  *              regardless of whether an error occurs or not.
  * @param bufsz the size of @a buf, or 0 if only a return value is wanted
  *
- * @returns the minimum buffer size required to convert the input without
- *          truncation. If this is larger than @a bufsz, then the @a buf
- *          will have been truncated.
- * @retval 0 [ENOMEM] The buffer size is too small and non-zero.
- * @retval 0 [EINVAL] The input text is invalid or malformed.
- * @retval 0 [EINVAL] The input text is not a string.
- * @retval 0 [EINVAL] The input string is well-formed, but would have
- *                    caused the output buffer to receive invalid UTF-8.
+ * @returns a non-zero positive number indicating
+ *          the minimum buffer size required to convert the input without
+ *          buffer truncation.
+ *          If this is larger than @a bufsz, then the @a buf will have been
+ *          truncated at a UTF-8 boundary nearest the buffer end.
  */
 size_t json_as_str(const __JSON char *json, void *buf, size_t bufsz);
 
@@ -456,7 +445,7 @@ size_t json_as_unsafe_str(const __JSON char *json, void *buf, size_t bufsz);
  *
  * Note that JSON <code>null</code> will be converted into the
  * C string <code>"null"</code> instead of @c NULL.
- * (Use #json_is_null() to test if the JSON value is <code>null</code>.)
+ * Use #json_is_null() to test if the JSON value is <code>null</code>.
  *
  * @param json  (optional) JSON text
  *
@@ -472,14 +461,14 @@ char *json_as_strdup(const __JSON char *json)
 /**
  * Converts JSON into an unsafe UTF-8 C string on the heap.
  *
- * This is the equivalent of #json_as_strdup() except that
- * invalid sequences are byte-mapped into U+DC00..U+DCFF the
- * same as #json_as_unsafe_str().
+ * This is the same as #json_as_strdup() except that
+ * invalid input sequences are byte-mapped into U+DC00..U+DCFF,
+ * in the same way as #json_as_unsafe_str().
  *
  * @param json  (optional) JSON text
  *
  * @returns a newly allocated C string
- * @retval NULL [EINVAL] Conversion error, see #json_as_unsafe_str().
+ * @retval NULL [EINVAL] The input text is not a string.
  * @retval NULL [ENOMEM] Allocation failed.
  *
  * The caller is responsible for calling @c free() on the returned pointer.
