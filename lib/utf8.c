@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stddef.h>
 
 #include "private.h"
 #include "utf8.h"
@@ -80,7 +81,7 @@ get_utf8_raw(const char *p, ucode *u_return)
 size_t
 get_utf8_raw_bounded(const char *p, const char *p_end, ucode *u_return)
 {
-	size_t expected;
+	ptrdiff_t expected;
 
 	if (p_end == p)
 		return 0;
@@ -94,7 +95,7 @@ get_utf8_raw_bounded(const char *p, const char *p_end, ucode *u_return)
 		expected = 4;
 	else
 		return 0;
-	if (p + expected <= p_end)
+	if (expected <= p_end - p)
 		return get_utf8_raw(p, u_return);
 	return 0;
 }
