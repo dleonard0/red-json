@@ -1,0 +1,76 @@
+#!/bin/sh
+
+#
+# This script reads the .cfg files written by giving gcc
+# the -fdump-tree-cfg-slim option, and emits a function
+# call graph that can be viewed with xdot.
+#
+# This is used to determine which files have independent functions
+# and therefore ought to be split in separate compilation units.
+#
+
+tmp=/tmp/t$$
+mkdir $tmp
+>$tmp/sed
+n=0
+echo "digraph {"
+for cfg in build/*.cfg; do
+    cfile=${cfg#build/}
+    cfile=${cfile%.c.*.cfg}.c
+    # ignore test programs    
+    case $cfile in t-*.c) continue;; esac
+
+    n=$(expr $n + 1)
+
+    # Parentheses never appear nested, so
+    # hunt the .cfg file for statements that
+    # involve calling another function.
+    awk '
+        /^;; Function/ {
+		fn = $3;
+	}
+	/^;;/ { next }
+	/^ *#/ { next }
+	/^[^ ]/ && $1 == fn { next; }
+	/^if [(]/ { next }
+	/^ = [(]/ { next }
+	/ goto / { next }
+	/[)];/ {
+		gsub(/"([^"]|\\.)*"/, "");
+		sub(/ [(][^)]*[)];$/, "");
+		sub(/.* /, "");
+		# found one: print "caller callee"
+	        print fn, $0;
+	}
+    ' cfile="$cfile" < $cfg | sort -u > $tmp/g$n
+    cut -d' ' -f1 <$tmp/g$n | sort -u > $tmp/c$n
+
+    regex="$(tr '\n' '|' < $tmp/c$n)"
+    regex="${regex%\|}"
+    if [ ! -s $tmp/c$n ]; then
+       continue
+    fi
+
+
+    echo "s,^(${regex}) ,cluster$n ," >> $tmp/sed
+    echo "s, (${regex})\$, cluster$n," >> $tmp/sed
+
+    # just the caller->callee edges within this compilation unit
+    echo " subgraph cluster$n {";
+    echo "  label = \"$cfile\";";
+    #echo "  cluster$n;";
+    egrep " (${regex})\$" < $tmp/g$n |
+	awk '{print "  " $1 " -> " $2 ";" }'
+    echo " }";
+    echo " cluster$n [label=\"$cfile\"];"
+done
+
+# now construct the inter-cluster graph
+
+sed -E -f $tmp/sed $tmp/g* | grep '^cluster.* cluster' | sort -u |
+     awk '$1 != $2 { print $1 " -> " $2 ";" }'
+
+echo "}"
+rm -f $tmp/sed $tmp/c* $tmp/g*
+rmdir $tmp
+#echo "tmp=$tmp" >&2
