@@ -311,6 +311,9 @@ It is common to receive binary data as BASE-64 encoded strings, per
     extern const char json_null[];   /* "null" */
 ```
 
+Generated, quoted JSON strings will not contain the sequences `</` nor `]]>`.
+These sequences are replaced by `<\/` and `]]\u003e`, respectively, as a
+guard against their use in HTML documents.
 
 ## More
 

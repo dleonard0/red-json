@@ -541,6 +541,9 @@ int json_from_bytes(const void *src, size_t srcsz,
  * If there is insufficient space in the output buffer, this function
  * will place an empty string in the output, and return 0 [ENOMEM].
  *
+ * Substrings "</" and "]]>" will have their last character escaped
+ * so that they never appear literally in the output buffer.
+ *
  * @param src   (optional) NUL-terminated source string in UTF-8
  * @param dst   output buffer, will be NUL terminated.
  * @param dstsz output buffer size, or

@@ -124,5 +124,11 @@ main()
 	assert_unsafe(U_DC5C, "\\");
 	assert_unsafe("a"U_DC5C"b", "a\\b");
 
+	/* Check special protections for </ and ]]> */
+	assert_safe("]]>", "]]\\u003e");
+	assert_safe("embed ]]> embed", "embed ]]\\u003e embed");
+	assert_safe("</", "<\\/");
+	assert_safe("embed </ embed", "embed <\\/ embed");
+
 	return 0;
 }

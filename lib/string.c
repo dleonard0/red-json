@@ -423,6 +423,7 @@ string_from_strn(const char *src, int srclen,
 	__JSON char *out_end = dst + dstsz;
 	const char *src_end = src + srclen;
 	int outlen = 0;
+	ucode lookbehind[2] = { 0, 0 };
 
 	assert(src);
 
@@ -449,12 +450,31 @@ string_from_strn(const char *src, int srclen,
 			return 0;
 		}
 
-		/* It is OK to call put_sanitized_str_escaped() here in SAFE
-		 * mode because IS_UTF8_SAFE() will have caught any
-		 * DCxx code points; so only valid UTF-8 will be stored. */
-		n = put_sanitized_str_escaped(u, out, out_end - out);
-		outlen += n;
-		out += n;
+		/* Avoid some character formations to protect those users
+		 * who are generating HTML/XML. (Inspired by OWASP's
+		 * JSON sanitizer) */
+		if (u == '/' && lookbehind[1] == '<') {
+			/* "</" -> "<\/" */
+			OUT('\\');
+			OUT('/');
+		} else if (u == '>' && lookbehind[1] == ']'
+				    && lookbehind[0] == ']')
+		{
+			/* "]]>" -> "]]\u003e" */
+			n = put_uescape(u, out, out_end - out);
+			outlen += n;
+			out += n;
+		} else {
+			/* It is OK to call put_sanitized_str_escaped() here
+			 * even in SAFE mode because the IS_UTF8_SAFE()
+			 * above will have caught any DCxx code points. */
+			n = put_sanitized_str_escaped(u, out, out_end - out);
+			outlen += n;
+			out += n;
+		}
+
+		lookbehind[0] = lookbehind[1];
+		lookbehind[1] = u;
 	}
 	OUT('"');
 	OUT('\0');
