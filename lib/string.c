@@ -381,15 +381,16 @@ json_strcmp(const __JSON char *json, const char *cstr)
  *
  * @param src     UTF-8 input
  * @param srclen  UTF-8 input size in bytes
- * @param dst     output buffer for JSON string. On error, this
- *                the first byte will be set to NUL if there is room.
+ * @param dst     output buffer for JSON string. On error, the first byte
+ *                in this buffer will be set to NUL.
  * @param dstsz   size of output buffer, or 0 for a size request
  * @param flags   Conversion flags: <ul>
  *                <li>@c SAFE - raise an error if could produce
  *                              non-strict UTF-8 output
  *		  </ul>
- * @return number of bytes stored in output buffer, or would have
- *         been stored because @a dstsz was zero.
+ * @return number of bytes stored in output buffer (including the trailing
+ *         NUL), or the number that would have been stored because
+ *         @a dstsz was zero.
  * @retval 0 [EINVAL] The input contains U+DC00..U+DCFF and the
  *                    SAFE flag is set.
  * @retval 0 [EINVAL] The input is malformed UTF-8.
