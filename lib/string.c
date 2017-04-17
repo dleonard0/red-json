@@ -128,7 +128,38 @@ get_escaped_sanitized(const __JSON char **json_ptr)
 }
 
 /**
+ * Stores a 6-byte \uXXXX sequence in the buffer.
+ *
+ * @param u     code point in \u0000..\uFFFF
+ * @param buf   output buffer
+ * @param bufsz output buffer size
+ * @returns 6, which is the number of bytes that were stored
+ *          or would have been stored had there been room.
+ */
+
+static size_t
+put_uescape(ucode u, void *buf, int bufsz)
+{
+	char *out = buf;
+	static const char HEX[] = "0123456789abcdef";
+
+	assert(u <= 0xffff);
+
+	if (bufsz > 0) bufsz--, *out++ = '\\';
+	if (bufsz > 0) bufsz--, *out++ = 'u';
+	if (bufsz > 0) bufsz--, *out++ = HEX[(u >> 12) & 0xf];
+	if (bufsz > 0) bufsz--, *out++ = HEX[(u >>  8) & 0xf];
+	if (bufsz > 0) bufsz--, *out++ = HEX[(u >>  4) & 0xf];
+	if (bufsz > 0) bufsz--, *out++ = HEX[(u >>  0) & 0xf];
+	return 6;
+}
+
+/**
  * Puts a unicode ucode, suitably string escaped, into the buffer.
+ *
+ * Only adds bytes of codepoints that are permitted by the RFC
+ * to be part of JSON strings are added as clean UTF-8 to the buffer.
+ * (But does not check for surrogate pairs).
  *
  * @param u     sanitized code point
  * @param buf   output buffer
@@ -142,7 +173,6 @@ put_sanitized_str_escaped(__SANITIZED ucode u, void *buf, int bufsz)
 {
 	char *out = buf;
 	char ch;
-	unsigned shift;
 
 	switch (u) {
 	case 0x0008: ch = 'b'; break;
@@ -155,24 +185,12 @@ put_sanitized_str_escaped(__SANITIZED ucode u, void *buf, int bufsz)
 	default:
 		if (u >= 0x20)
 			return put_sanitized_utf8(u, buf, bufsz);
-		ch = 'u';
+		return put_uescape(u, buf, bufsz);
 	}
 
 	if (bufsz > 0) bufsz--, *out++ = '\\';
 	if (bufsz > 0) bufsz--, *out++ = ch;
-	if (ch != 'u')
-		return 2;
-
-	assert(u <= 0xffff);
-	shift = 16;
-	do {
-		shift -= 4;
-		if (bufsz > 0) {
-			bufsz--;
-			*out++ = "0123456789abcdef"[0xf & (u >> shift)];
-		}
-	} while (shift);
-	return 6;
+	return 2;
 }
 
 
