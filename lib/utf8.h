@@ -45,12 +45,14 @@ typedef unsigned int ucode;
 #define get_utf8_raw_bounded	_redjson_get_utf8_raw_bounded
 #define put_utf8_raw		_redjson_put_utf8_raw
 #define get_utf8_sanitized	_redjson_get_utf8_sanitized
+#define get_escaped_sanitized	_redjson_get_escaped_sanitized
 #define put_sanitized_utf8	_redjson_put_sanitized_utf8
 
 size_t get_utf8_raw_bounded(const char *p, const char *p_end,
 				ucode *u_return);
 size_t put_utf8_raw(ucode u, void *buf, int bufsz);
 __SANITIZED ucode get_utf8_sanitized(const char **p_ptr);
+__SANITIZED ucode get_escaped_sanitized(const /* __JSON */ char **json_ptr);
 size_t put_sanitized_utf8(__SANITIZED ucode u, void *buf, int bufsz);
 
 #endif /* REDJSON_UTF8_H */

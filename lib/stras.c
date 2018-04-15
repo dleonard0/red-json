@@ -63,7 +63,6 @@ four_xdigits(const __JSON char **json_ptr, ucode *u_return)
  *
  * @returns a sanitized unicode ucode
  */
-static
 __SANITIZED ucode
 get_escaped_sanitized(const __JSON char **json_ptr)
 {
