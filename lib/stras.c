@@ -230,7 +230,7 @@ as_str_alloc(const __JSON char *json, int flags)
 
 __PUBLIC
 size_t
-json_as_unsafe_str(const __JSON char *json, void *buf, size_t bufsz)
+json_as_utf8b(const __JSON char *json, void *buf, size_t bufsz)
 {
 	return as_str(json, buf, bufsz, 0);
 }
@@ -244,7 +244,7 @@ json_as_str(const __JSON char *json, void *buf, size_t bufsz)
 
 __PUBLIC
 char *
-json_as_unsafe_strdup(const __JSON char *json)
+json_as_utf8b_strdup(const __JSON char *json)
 {
 	return as_str_alloc(json, 0);
 }

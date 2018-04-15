@@ -406,11 +406,11 @@ int json_is_null(const __JSON char *json);
 size_t json_as_str(const __JSON char *json, void *buf, size_t bufsz);
 
 /**
- * Converts JSON into an unsafe UTF-8 C string.
+ * Converts JSON into a UTF-8B C string.
  *
  * This conversion is the same as #json_as_str(), except that
- * invalid input sequences from the input JSON text are mapped byte-wise
- * into U+DC00..U+DCFF and then stored as UTF-8 in the output buffer.
+ * invalid input sequences are not truncated, but instead
+ * mapped byte-wise into U+DC00..U+DCFF.
  *
  * The invalid sequences so mapped are:
  * <ul>
@@ -421,7 +421,7 @@ size_t json_as_str(const __JSON char *json, void *buf, size_t bufsz);
  *     (except for 12-byte surrogate pairs explained by RFC7159).
  * </ul>
  *
- * @see #json_string_from_unsafe_str()
+ * @see #json_string_from_utf8b()
  *
  * @param json  (optional) input JSON text
  * @param buf   storage for the returned modified UTF-8 string.
@@ -434,7 +434,7 @@ size_t json_as_str(const __JSON char *json, void *buf, size_t bufsz);
  * @retval 0 [ENOMEM] The buffer size is too small and non-zero.
  * @retval 0 [EINVAL] The input text is not a string.
  */
-size_t json_as_unsafe_str(const __JSON char *json, void *buf, size_t bufsz);
+size_t json_as_utf8b(const __JSON char *json, void *buf, size_t bufsz);
 
 /**
  * Converts JSON into a UTF-8 C string on the heap.
@@ -459,11 +459,11 @@ char *json_as_strdup(const __JSON char *json)
     __attribute__((malloc));
 
 /**
- * Converts JSON into an unsafe UTF-8 C string on the heap.
+ * Converts JSON into a UTF-8B C string on the heap.
  *
  * This is the same as #json_as_strdup() except that
  * invalid input sequences are byte-mapped into U+DC00..U+DCFF,
- * in the same way as #json_as_unsafe_str().
+ * in the same way as #json_as_utf8b().
  *
  * @param json  (optional) JSON text
  *
@@ -473,7 +473,7 @@ char *json_as_strdup(const __JSON char *json)
  *
  * The caller is responsible for calling @c free() on the returned pointer.
  */
-char *json_as_unsafe_strdup(const __JSON char *json)
+char *json_as_utf8b_strdup(const __JSON char *json)
     __attribute__((malloc));
 
 /**
@@ -621,13 +621,11 @@ size_t json_string_from_strn(const char *src, int srclen,
 				__JSON char *dst, size_t dstsz);
 
 /**
- * Converts from an unsafe UTF-8 C string into a quoted JSON string value.
+ * Converts from a UTF-8B C string into a quoted JSON string value.
  *
- * An unsafe UTF-8 string is one that contains codepoints
- * U+DC00..U+DCFF. This function unwraps them back into individual bytes.
- *
- * Otherwise invalid UTF-8 in the unsafe source string causes this
- * function to return 0 [EINVAL].
+ * A UTF-8B string is one that contains codepoints
+ * U+DC00..U+DCFF. This function unwraps these points
+ * back into individual bytes.
  *
  * This function is otherwise similar to #json_string_from_str().
  *
@@ -641,11 +639,11 @@ size_t json_string_from_strn(const char *src, int srclen,
  * @retval 0 [EINVAL] The source string is @c NULL
  * @retval 0 [ENOMEM] The output buffer is too small.
  */
-size_t json_string_from_unsafe_str(const char *src,
+size_t json_string_from_utf8b(const char *src,
 				__JSON char *dst, size_t dstsz);
 
 /**
- * @see #json_string_from_unsafe_str().
+ * @see #json_string_from_utf8b().
  *
  * @param src    source string
  * @param srclen number of bytes in the source string
@@ -657,17 +655,17 @@ size_t json_string_from_unsafe_str(const char *src,
  *                    characters, other than U+DC00..U+DCFF
  * @retval 0 [ENOMEM] The output buffer is too small.
  */
-size_t json_string_from_unsafe_strn(const char *src, int srclen,
+size_t json_string_from_utf8bn(const char *src, int srclen,
 				__JSON char *dst, size_t dstsz);
 
 /**
  * Compares a JSON value with a UTF-8 C string.
  *
  * This function is equivalent to converting the first argument with
- * #json_as_unsafe_str(), and then comparing that to the second argument
+ * #json_as_utf8b(), and then comparing that to the second argument
  * with @c strcmp().
  *
- * Note that UTF-8 comparison by @c strcmp() is equivalent to a
+ * Note that UTF-8B comparison with @c strcmp() is equivalent to a
  * per-unicode-character comparison thanks to a nifty property of UTF-8.
  *
  * <ul>

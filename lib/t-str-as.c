@@ -12,8 +12,8 @@
  *
  *    #json_as_str()
  *    #json_as_strdup()
- *    #json_as_unsafe_str()
- *    #json_as_unsafe_strdup()
+ *    #json_as_utf8b()
+ *    #json_as_utf8b_strdup()
  */
 
 static char buf[1024]; /* shared across tests */
@@ -78,31 +78,31 @@ static char buf[1024]; /* shared across tests */
 /** Asserts that @a bad_json is correctly treated as invalid JSON
 *   by these functions:
  *   #json_as_str()
- *   #json_as_unsafe_str()
+ *   #json_as_utf8b()
  *   #json_as_strdup()
- *   #json_as_unsafe_strdup()
+ *   #json_as_utf8b_strdup()
  **/
 #define assert_invalid(bad_json) do {					   \
 	_assert_fn_inval(json_as_str, bad_json);			   \
-	_assert_fn_inval(json_as_unsafe_str, bad_json);			   \
+	_assert_fn_inval(json_as_utf8b, bad_json);			   \
 	assert_errno(json_as_strdup(bad_json) == NULL, EINVAL);		   \
-	assert_errno(json_as_unsafe_strdup(bad_json) == NULL, EINVAL);	   \
+	assert_errno(json_as_utf8b_strdup(bad_json) == NULL, EINVAL);	   \
     } while (0)
 
 /** Asserts that @a json is correctly converted to @a expected by
 *   these functions:
  *   #json_as_str()
- *   #json_as_unsafe_str()
+ *   #json_as_utf8b()
  *   #json_as_strdup()
- *   #json_as_unsafe_strdup()
+ *   #json_as_utf8b_strdup()
  */
 #define assert_good(json, expected) do {				   \
 	char *_p;							   \
 	_assert_fn_good(json_as_str, json, expected);			   \
-	_assert_fn_good(json_as_unsafe_str, json, expected);		   \
+	_assert_fn_good(json_as_utf8b, json, expected);		   \
 	assert_streq((_p = json_as_strdup(json)), expected);		   \
 	free(_p);							   \
-	assert_streq((_p = json_as_unsafe_strdup(json)), expected);	   \
+	assert_streq((_p = json_as_utf8b_strdup(json)), expected);	   \
 	free(_p);							   \
     } while (0)
 
@@ -110,15 +110,15 @@ static char buf[1024]; /* shared across tests */
  *   #json_as_str()
  *   #json_as_strdup()
  *  and that it is accepted and converted into @a expected by:
- *   #json_as_unsafe_str()
- *   #json_as_unsafe_strdup()
+ *   #json_as_utf8b()
+ *   #json_as_utf8b_strdup()
  */
 #define assert_unsafe(unsafe_json, expected) do {			   \
 	char *_p;							   \
 	_assert_fn_inval(json_as_str, unsafe_json);			   \
-	_assert_fn_good(json_as_unsafe_str, unsafe_json, expected);	   \
+	_assert_fn_good(json_as_utf8b, unsafe_json, expected);	   \
 	assert_errno(json_as_strdup(unsafe_json) == NULL, EINVAL);	   \
-	assert_streq((_p = json_as_unsafe_strdup(unsafe_json)), expected); \
+	assert_streq((_p = json_as_utf8b_strdup(unsafe_json)), expected); \
 	free(_p);							   \
     } while (0)
 

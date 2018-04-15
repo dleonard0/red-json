@@ -10,8 +10,8 @@
  *
  *     #json_string_from_str()
  *     #json_string_from_strn()
- *     #json_string_from_unsafe_str()
- *     #json_string_from_unsafe_strn()
+ *     #json_string_from_utf8b()
+ *     #json_string_from_utf8bn()
  */
 
 char buf[1024];
@@ -42,22 +42,22 @@ char buf[1024];
 #define Q(json) "\"" json "\"" /* simple quoting of a C string literal */
 
 /* The following three macros assert that
- *   json_string_from_unsafe_strn()
+ *   json_string_from_utf8bn()
  *   json_string_from_strn()
  * correctly classify the src data as safe/unsafe/bad.
  */
 #define assert_unsafe(src, json) do {					\
-	    _assert_ok(json_string_from_unsafe_strn, src, Q(json));	\
+	    _assert_ok(json_string_from_utf8bn, src, Q(json));	\
 	    _assert_bad(json_string_from_strn, src);			\
 	} while (0)
 
 #define assert_safe(src, json) do {					\
-	    _assert_ok(json_string_from_unsafe_strn, src, Q(json));	\
+	    _assert_ok(json_string_from_utf8bn, src, Q(json));	\
 	    _assert_ok(json_string_from_strn, src, Q(json));		\
 	} while (0)
 
 #define assert_bad(src) do {						\
-	    _assert_bad(json_string_from_unsafe_strn, src);		\
+	    _assert_bad(json_string_from_utf8bn, src);		\
 	    _assert_bad(json_string_from_strn, src);			\
 	} while (0)
 
@@ -73,7 +73,7 @@ main()
 	assert_streq(buf, "\"hello\"");
 
 	memset(buf, '#', sizeof buf);
-	assert_inteq(json_string_from_unsafe_strn("helloxx", 5,
+	assert_inteq(json_string_from_utf8bn("helloxx", 5,
 	    buf, sizeof buf), sizeof "\"hello\"");
 	assert_streq(buf, "\"hello\"");
 
@@ -83,13 +83,13 @@ main()
 	    sizeof "\"hello\"");
 	assert_streq(buf, "\"hello\"");
 	memset(buf, '#', sizeof buf);
-	assert_inteq(json_string_from_unsafe_str("hello", buf, sizeof buf),
+	assert_inteq(json_string_from_utf8b("hello", buf, sizeof buf),
 	    sizeof "\"hello\"");
 	assert_streq(buf, "\"hello\"");
 
 	/* The _str functions don't crash with NULL inputs */
 	assert_errno(!json_string_from_str(NULL, buf, sizeof buf), EINVAL);
-	assert_errno(!json_string_from_unsafe_str(NULL, buf, sizeof buf),
+	assert_errno(!json_string_from_utf8b(NULL, buf, sizeof buf),
 	    EINVAL);
 
 	/*
