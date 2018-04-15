@@ -11,8 +11,10 @@
 #define cRED     "\033[31m"
 #define cNORMAL  "\033[m"
 
+#define __static_inline static inline
+
 /** Puts a character using C escaping */
-inline void
+__static_inline void
 fputc_esc(int c, FILE *f)
 {
 	if (c == '"' || c == '\\')
@@ -24,7 +26,7 @@ fputc_esc(int c, FILE *f)
 }
 
 /** Puts a string using C quoting and escaping */
-inline void
+__static_inline void
 fputs_esc(const char *s, FILE *f)
 {
 	if (!s)
@@ -38,7 +40,7 @@ fputs_esc(const char *s, FILE *f)
 }
 
 /** Puts a byte array */
-inline void
+__static_inline void
 fputary(const char *a, size_t n, FILE *f)
 {
 	if (!a)
@@ -59,7 +61,7 @@ fputary(const char *a, size_t n, FILE *f)
 /* A macro to assert two C strings are not NULL and have equal content */
 #define assert_streq(a,b) _assert_streq(_assert_args(#a, #b), a, b, "")
 #define assert_streqx(a,b,x) _assert_streq(_assert_args(#a, #b), a, b, x)
-inline void
+__static_inline void
 _assert_streq(_assert_params, const char *a, const char *b, const char *ext)
 {
 	if (!a || !b || strcmp(a, b) != 0) {
@@ -76,7 +78,7 @@ _assert_streq(_assert_params, const char *a, const char *b, const char *ext)
 
 /* A macro to assert two byte arrays are not NULL and have equal content */
 #define assert_memeq(a,b,n) _assert_memeq(_assert_args(#a, #b), #n, a, b, n)
-inline void
+__static_inline void
 _assert_memeq(_assert_params, const char *n_arg, const char *a, const char *b,
     size_t n)
 {
@@ -94,7 +96,7 @@ _assert_memeq(_assert_params, const char *n_arg, const char *a, const char *b,
 
 /* A macro to assert two integers have equal value */
 #define assert_inteq(a,b) _assert_inteq(_assert_args(#a, #b), a, b)
-inline void
+__static_inline void
 _assert_inteq(_assert_params, int a, int b)
 {
 	if (a != b) {
@@ -109,7 +111,7 @@ _assert_inteq(_assert_params, int a, int b)
 
 /* A macro to assert two long integers have equal value */
 #define assert_longeq(a,b) _assert_longeq(_assert_args(#a, #b), a, b)
-inline void
+__static_inline void
 _assert_longeq(_assert_params, long a, long b)
 {
 	if (a != b) {
@@ -125,7 +127,7 @@ _assert_longeq(_assert_params, long a, long b)
 /* A macro to assert two doubles have equal value.
  * Comparing with NAN is OK */
 #define assert_doubleeq(a,b) _assert_doubleeq(_assert_args(#a, #b), a, b)
-inline void
+__static_inline void
 _assert_doubleeq(_assert_params, double a, double b)
 {
 	if (isnan(a) ? !isnan(b) : isnan(b) ? !isnan(a) : a != b) {
@@ -140,7 +142,7 @@ _assert_doubleeq(_assert_params, double a, double b)
 
 /* A macro to assert two C chars are equal */
 #define assert_chareq(a,b) _assert_chareq(_assert_args(#a, #b), a, b)
-inline void
+__static_inline void
 _assert_chareq(_assert_params, char a, char b)
 {
 	if (a != b) {
@@ -157,7 +159,7 @@ _assert_chareq(_assert_params, char a, char b)
 
 /* A macro to assert two errno's have equal value */
 #define assert_errnoeq(a,b) _assert_errnoeq(_assert_args(#a, #b), a, b)
-inline void
+__static_inline void
 _assert_errnoeq(_assert_params, int a, int b)
 {
 	if (a != b) {
