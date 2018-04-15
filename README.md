@@ -9,49 +9,48 @@ A just-in-time, lightweight JSON parser for C.
 * Iterate a `const char *` pointer over your input as you
   extract JSON numbers, strings, objects and arrays.
 * Seek directly into deep structures with `json_select()`
-  using patterns like `foo[1].bar`.
-* All inputs are `NULL`-safe.
-  `NULL` is treated the same as empty/malformed input.
+  using seek patterns like `"foo[1].bar"`.
 * A tight group of converter functions that turn JSON values
   into the C types you need. No fuss, no surprise.
-* Consistent error system using `-1` and `errno`.
-* Sanitized UTF-8; lock-free and re-entrant safe functions.
+* Consistent error reporting using `errno`.
+* Sanitized UTF-8; lock-free and re-entrant functions.
+* `NULL`-safe inputs: `NULL` is treated the same as empty/malformed input.
 
 [![Build Status](https://travis-ci.org/dleonard0/red-json.svg?branch=master)](https://travis-ci.org/dleonard0/red-json)
 
 ## Overview
 
-Make sure your JSON data fits in memory and is NUL-terminated.
-Functions named `json_as_<ctype>()` convert JSON into the C type directly.
-The `json_select()` function "drills down" to the substructure you need.
+If your JSON input text fits in memory and is NUL-terminated, this
+is the library for you.
+
+* `json_select()` "drills down" to the substructure you need.
+* `json_as_<ctype>()` converts JSON into the C type directly.
+* `json_from_<ctype>()` converts C values into JSON text.
 
 ## Examples
 
 Let's say we have this input:
 
 ```json
-    {
-        "hotel": [
-            null,
-            {
-                "cook": {
-                    "name": "Mr LeChe\ufb00",
-                    "age": 91,
-                    "cuisine": "Fish and chips",
-                    "scores": [ 4, 5, 1 ]
-                },
-            }
+    { "hotel": 
+        [ null,
+          { "cook": { "name": "Mr LeChe\ufb00",
+                      "age": 91,
+                      "cuisine": "Fish and chips",
+                      "scores": [ 4, 5, 1 ]
+                    },
+          }
         ]
    }
 ```
 
-Then we can process that input with this program:
+Then we can process it with this program:
 
 ```c
     extern const char *input;                         /* the JSON text above */
     const char *cook;
 
-    cook = json_select(input, "hotel[1].cook");       /* Points to { after "cook": */
+    cook = json_select(input, "hotel[1].cook");       /* cook = &'{' after "cook": */
 
     printf("The cook's age is %d\n", json_select_int(cook, "age"));
     for (unsigned i = 0; i < 3; i++)
@@ -79,23 +78,23 @@ Here are some more conversions to get a feel for `json_as_<ctype>()`:
 ```
 
 
-String bufers are always left in a safe state:
+String buffers are always left in a safe state:
 
 ```c
     char buf[1024];
 
     if (json_as_str(json_select(cook, "name"), buf, sizeof buf)) {
-        /* buf[] will always become NUL-terminated, even on error.
-	 * And the text is truncated where it violates RFC 3629 */
+        /* buf[] will become NUL-terminated, even on error.
+	 * It is truncated where input violates RFC 3629. */
         printf("The cook's name is %s\n", buf);
     }
 
     /* Output: The cook's name is Mr LeCheﬀ */
 ```
 
-(But `json_as_utf8b()` exists if you don't like safety-truncating.)
+Though if you don't like safety/truncating, there's `json_as_utf8b()`.
 
-Maybe we prefer the heap instead of return buffers:
+Maybe you prefer the heap for your strings? Use this:
 
 ```c
     char *cuisine = json_select_strdup(cook, "cuisine");
@@ -107,15 +106,15 @@ Maybe we prefer the heap instead of return buffers:
     /* Output: Enjoy your Fish and chips */
 ```
 
-And sometimes you just want to compare strings without
-copying them anywhere:
+And sometimes you just want to compare strings in-place without
+copying them:
 
 ```c
     if (json_strcmp(json_select(cook, "cuisine"), "Swedish-Maori") == 0)
         raise(eyebrows);
 ```
 
-Leaving food behind now, we can demonstrate BASE-64 binary content:
+Let's leaving the hotel behind now, and look at BASE-64 binary content:
 
 ```c
     int buflen = json_as_bytes("\"SQNDUDQzNw==\"", buf, sizeof buf);
@@ -138,24 +137,24 @@ And finally, an example of iterating over an array, <em>in-place</em>:
     /* (No need to cleanup elem or iter.) */
 ```
 
-A similar function exists for walking the key-values of an object.
+Similar functions exist for enumerating the key-values of an object.
 
 ## Text pointers
 
 A `const char *` pointer into JSON text
 represents the JSON value to which it points.
-We call these "text pointers".
 
 For example, a pointer to the `[` character
 in `[10,2,3]`
 represents the whole array,
 while a pointer to the `1` represents the 10.
 
-Please ensure JSON text is terminated with a NUL byte
-if there is any risk of it being malformed or
-truncated.
+We call these "text pointers", and
+they are passed as the first argument to any `json_as_…()` function.
 
-### Converters
+You must ensure that JSON text is terminated with a NUL byte.
+
+## Converters
 
 Here are the functions that convert JSON text into C values.
 
@@ -224,7 +223,7 @@ Here is how to handle errors if you need to be careful:
 
 All converters will treat `NULL` JSON as though it were empty input.
 
-#### More type tricks
+### More conversion tricks
 
 `json_as_bool()` implements the same "falsey" rules as Javascript.
 
@@ -236,7 +235,7 @@ and use that information to choose which converter to use.
     enum json_type json_type(const char *json);
 ```
 
-### Safe strings and you
+## Safe strings and you
 
 ```c
     size_t json_as_str(const char *json, void *buf, size_t bufsz);
@@ -245,21 +244,19 @@ and use that information to choose which converter to use.
 `json_as_str()` stores a "safe" C string in the output buffer *buf*.
 By "safe", I mean a string truncated to protect you as per
 [RFC 3629](https://tools.ietf.org/html/rfc3629).
-Truncation happens when the input
+The string is safely truncated when the input
 * contains U+0 (`EINVAL`), or
 * would require the storing of an unsafe UTF-8 codepoint in
   the output (`EINVAL`), or
 * has a malformed or overlong UTF-8 encoding (`EINVAL`), or
 * would otherwise overflow the output buffer (`ENOMEM`).
 
-Examples of partial inputs where `json_as_str()` will terminate
-conversion are:
-`\u0000`, `\ud800` and `<C0 A0>` (an overlong SPC).
+Examples of inputs where `json_as_str()` will terminate are:
+`"\u0000"`, `"\ud800"` and `"<C0><A0>"` (an overlong SPC).
 
-#### UTF-8B to the rescue
+### UTF-8B to the rescue
 
-If you need to work with potentially unsafe or malformed JSON input,
-then use:
+If you need to work with unsafe or malformed JSON input, use UTF-8B:
 
 ```c
     size_t json_as_utf8b(const char *json, void *buf, size_t bufsz);
@@ -267,38 +264,41 @@ then use:
 
 This function does not reject any inputs, because
 it stores a UTF-8B transformation in *buf*.
-UTF-8B uses the codepoints { U+DC00 … U+DCFF }
+UTF-8B makes use of the reserved codepoints { U+DC00 … U+DCFF }
 to hold all the malformed and "difficult" input bytes.
 
 For example, the overlong input byte sequence `<C0><A0>` is
 stored as `<U+DCC0><U+DCA0>`,
-and the problematic JSON escape sequence `\u0000` as `<U+DC5C>u0000`.
+and the problematic JSON escape sequence `\u0000` becomes `<U+DC5C>u0000`.
 
-This transformation is exactly reversed when you send the string back with
-`json_from_utf8()`.
+This UTF-8B transformation is exactly reversed when you send the string
+back with `json_from_utf8b()`.
 
-[Kuhn's UTF-8b](http://hyperreal.org/~est/utf-8b/releases/utf-8b-20060413043934/kuhn-utf-8b.html)
+Note:
+[Kuhn's UTF-8B](http://hyperreal.org/~est/utf-8b/releases/utf-8b-20060413043934/kuhn-utf-8b.html)
 is strictly incompatible with RFC 3629 or
 [Unicode Scalar Values](http://www.unicode.org/glossary/#unicode_scalar_value)
 but it can be useful for interoperability
-when you need to send back exactly the garbage you got.
+when you need to send back exactly the garbage you received.
 
-#### Handling raw or binary data
-
-Another way to preserve uninterpreted JSON input is
-to use `json_span()` and `memcpy()`.
-This works for any kind of JSON input text.
+### Handling raw or binary data
 
 If you have binary data, consider using `json_as_bytes()`.
 
-#### Sizing the output buffer
+Another way to preserve literal JSON input is
+to use `json_span()` and `memcpy()`.
+This works for any kind of JSON input text and
+is an efficient way to copy around chunks of input JSON text.
+
+
+### Sizing the output buffer
 
 Providing a large-enough output buffer to string functions
-is the caller's responsibility.
+can be a difficult responsibility.
 If the buffer provided is too small,
-then the stored string will be NUL-truncated at the UTF-8 boundary
-nearest the end of the buffer,
-although the ideal buffer size will returned.
+then the stored string will be NUL-truncated just before the UTF-8 boundary
+nearest the end of the buffer.
+Then the ideal buffer size will returned.
 
 To dynamically allocate the buffer,
 the caller can specify a buffer size of 0,
@@ -313,7 +313,7 @@ by these convenience functions:
     char * json_as_utf8b_strdup(const char *json);
 ```
 
-### Decoding BASE-64 to bytes
+## Decoding BASE-64 to bytes
 
 It is common to receive binary data as BASE-64 encoded strings, per
 [RFC 3548](https://tools.ietf.org/html/rfc3548).
