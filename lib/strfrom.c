@@ -167,7 +167,7 @@ string_from_strn(const char *src, int srclen,
 
 __PUBLIC
 size_t
-json_string_from_str(const char *src, __JSON char *dst, size_t dstsz)
+json_from_str(const char *src, __JSON char *dst, size_t dstsz)
 {
 	if (!src) {
 		errno = EINVAL;
@@ -178,7 +178,7 @@ json_string_from_str(const char *src, __JSON char *dst, size_t dstsz)
 
 __PUBLIC
 size_t
-json_string_from_strn(const char *src, int srclen,
+json_from_strn(const char *src, int srclen,
     __JSON char *dst, size_t dstsz)
 {
 	return string_from_strn(src, srclen, dst, dstsz, SAFE);
@@ -186,7 +186,7 @@ json_string_from_strn(const char *src, int srclen,
 
 __PUBLIC
 size_t
-json_string_from_utf8b(const char *src, __JSON char *dst, size_t dstsz)
+json_from_utf8b(const char *src, __JSON char *dst, size_t dstsz)
 {
 	if (!src) {
 		errno = EINVAL;
@@ -197,7 +197,7 @@ json_string_from_utf8b(const char *src, __JSON char *dst, size_t dstsz)
 
 __PUBLIC
 size_t
-json_string_from_utf8bn(const char *src, int srclen,
+json_from_utf8bn(const char *src, int srclen,
     __JSON char *dst, size_t dstsz)
 {
 	return string_from_strn(src, srclen, dst, dstsz, 0);

@@ -421,7 +421,7 @@ size_t json_as_str(const __JSON char *json, void *buf, size_t bufsz);
  *     (except for 12-byte surrogate pairs explained by RFC7159).
  * </ul>
  *
- * @see #json_string_from_utf8b()
+ * @see #json_from_utf8b()
  *
  * @param json  (optional) input JSON text
  * @param buf   storage for the returned modified UTF-8 string.
@@ -601,11 +601,11 @@ int json_from_bytes(const void *src, size_t srcsz,
  * @retval 0 [EINVAL] The source string contains invalid UTF-8.
  * @retval 0 [ENOMEM] The output buffer size @a dstz was too small and non-zero.
  */
-size_t json_string_from_str(const char *src,
+size_t json_from_str(const char *src,
 				__JSON char *dst, size_t dstsz);
 
 /**
- * @see #json_string_from_str().
+ * @see #json_from_str().
  *
  * @param src    source string in UTF-8
  * @param srclen number of bytes in @a src to use
@@ -617,7 +617,7 @@ size_t json_string_from_str(const char *src,
  * @retval 0 [EINVAL] The source string contains invalid UTF-8.
  * @retval 0 [ENOMEM] The output buffer is too small.
  */
-size_t json_string_from_strn(const char *src, int srclen,
+size_t json_from_strn(const char *src, int srclen,
 				__JSON char *dst, size_t dstsz);
 
 /**
@@ -627,7 +627,7 @@ size_t json_string_from_strn(const char *src, int srclen,
  * U+DC00..U+DCFF. This function unwraps these points
  * back into individual bytes.
  *
- * This function is otherwise similar to #json_string_from_str().
+ * This function is otherwise similar to #json_from_str().
  *
  * @param src   (optional) NUL-terminated source string
  * @param dst   output buffer, will be NUL terminated.
@@ -639,11 +639,11 @@ size_t json_string_from_strn(const char *src, int srclen,
  * @retval 0 [EINVAL] The source string is @c NULL
  * @retval 0 [ENOMEM] The output buffer is too small.
  */
-size_t json_string_from_utf8b(const char *src,
+size_t json_from_utf8b(const char *src,
 				__JSON char *dst, size_t dstsz);
 
 /**
- * @see #json_string_from_utf8b().
+ * @see #json_from_utf8b().
  *
  * @param src    source string
  * @param srclen number of bytes in the source string
@@ -655,7 +655,7 @@ size_t json_string_from_utf8b(const char *src,
  *                    characters, other than U+DC00..U+DCFF
  * @retval 0 [ENOMEM] The output buffer is too small.
  */
-size_t json_string_from_utf8bn(const char *src, int srclen,
+size_t json_from_utf8bn(const char *src, int srclen,
 				__JSON char *dst, size_t dstsz);
 
 /**
