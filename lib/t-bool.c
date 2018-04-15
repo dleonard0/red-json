@@ -52,5 +52,10 @@ main()
 	assert_errno(json_as_bool("+"), EINVAL);
 	assert_errno(json_as_bool("-"), EINVAL);
 
+	assert_streq(json_from_bool(0), "false");
+	assert_streq(json_from_bool(1), "true");
+	assert_streq(json_from_bool(2), "true");
+	assert_streq(json_from_bool(-1), "true");
+
 	return 0;
 }

@@ -712,4 +712,7 @@ extern const char json_true[];	/**< "true" */
 extern const char json_false[];	/**< "false" */
 extern const char json_null[];	/**< "null" */
 
+/** Converts a boolean into string constants "true" or "false". */
+#define json_from_bool(b) ((b) ? json_true : json_false)
+
 #endif /* REDJSON_H */
