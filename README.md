@@ -3,60 +3,31 @@
 
 A just-in-time, lightweight JSON parser for C.
 
-* No pre-parse; no intermediate types.
-  Convert JSON values to C as you need them.
-* Iterate a `char *` pointer over JSON objects and arrays.
-* Seek straight into JSON structures using patterns like `foo[1].bar`.
-* Input safety: `NULL` is treated the same as an empty/malformed input.
-* Converter functions are "best effort" in turning JSON values into C.
-  On mismatch/error they will set `errno` to `EINVAL`
-  and return a best-effort or unsurprising value.
+* No need to parse into a value tree.
+  Convert JSON directly into C values as you need them.
+  Very low on memory use.
+* Iterate a `const char *` pointer over your input as you
+  extract JSON numbers, strings, objects and arrays.
+* Seek directly into deep structures with `json_select()`
+  using patterns like `foo[1].bar`.
+* All inputs are `NULL`-safe.
+  `NULL` is treated the same as empty/malformed input.
+* A tight group of converter functions that turn JSON values
+  into the C types you need. No fuss, no surprise.
+* Consistent error system using `-1` and `errno`.
+* Sanitized UTF-8; lock-free and re-entrant safe functions.
 
 [![Build Status](https://travis-ci.org/dleonard0/red-json.svg?branch=master)](https://travis-ci.org/dleonard0/red-json)
 
+## Overview
+
+Make sure your JSON data fits in memory and is NUL-terminated.
+Functions named `json_as_<ctype>()` convert JSON into the C type directly.
+The `json_select()` function "drills down" to the substructure you need.
+
 ## Examples
 
-Let's convert some numbers:
-
-```c
-    #include <redjson.h>
-
-    double a = json_as_double("1.24e8");              /* 124000000 */
-    double b = json_as_double(NULL);                  /* NAN, errno==EINVAL */
-    int c = json_as_int("9.26e1");                    /* 92 */
-    int d = json_select_int("[true,5,{}]", "[1]");    /* 5 */
-```
-
-Iterate over an array:
-
-```c
-    const char *iter;                                 /* Iterator state */
-    const char *elem;                                 /* Loop variable */
-
-    iter = json_as_array("[1, 2, null, []]");         /* Starts iterator */
-    while ((elem = json_array_next(&iter)))
-        printf("%d ", json_as_int(elem));
-
-    /* Output: 1 2 0 0 */
-```
-
-Search within a structure using a Javascript-like selector:
-
-```c
-    extern const char *input;                         /* See hotel JSON below */
-    const char *cook;
-
-    cook = json_select(input, "hotel[1].cook");       /* Points to { after "cook": */
-
-    printf("The cook's age is %d\n", json_select_int(cook, "age"));
-    for (unsigned i = 0; i < 3; i++)
-        printf("score #%u: %d\n", i, json_select_int(cook, "scores[%u]", i));
-
-    /* Output: The cook's age is 91
-               score #0: 4
-               score #1: 5
-               score #2: 1           */
-```
+Let's say we have this input:
 
 ```json
     {
@@ -74,19 +45,57 @@ Search within a structure using a Javascript-like selector:
    }
 ```
 
-Let's print safe, UTF-8 strings:
+Then we can process that input with this program:
+
+```c
+    extern const char *input;                         /* the JSON text above */
+    const char *cook;
+
+    cook = json_select(input, "hotel[1].cook");       /* Points to { after "cook": */
+
+    printf("The cook's age is %d\n", json_select_int(cook, "age"));
+    for (unsigned i = 0; i < 3; i++)
+        printf("score #%u: %d\n", i, json_select_int(cook, "scores[%u]", i));
+
+    /* Output: The cook's age is 91
+               score #0: 4
+               score #1: 5
+               score #2: 1           */
+```
+
+Pro tip:
+Every time you see `json_select_<ctype>()` know that it's a convenience
+function that combines `json_select()` with `json_as_<ctype>()`.
+
+Here are some more conversions to get a feel for `json_as_<ctype>()`:
+
+```c
+    #include <redjson.h>
+
+    double a = json_as_double("1.24e8");              /* a = 124000000 */
+    double b = json_as_double(NULL);                  /* b = NAN, errno = EINVAL */
+    int c = json_as_int("9.26e1");                    /* c = 92 */
+    int d = json_select_int("[true,5,{}]", "[1]");    /* d = 5 */
+```
+
+
+String bufers are always left in a safe state:
 
 ```c
     char buf[1024];
 
-    /* buf will always be NUL-terminated, even on error */
-    if (json_as_str(json_select(cook, "name"), buf, sizeof buf))
+    if (json_as_str(json_select(cook, "name"), buf, sizeof buf)) {
+        /* buf[] will always become NUL-terminated, even on error.
+	 * And the text is truncated where it violates RFC 3629 */
         printf("The cook's name is %s\n", buf);
+    }
 
     /* Output: The cook's name is Mr LeCheﬀ */
 ```
 
-Or get your strings on the heap:
+(But `json_as_utf8b()` exists if you don't like safety-truncating.)
+
+Maybe we prefer the heap instead of return buffers:
 
 ```c
     char *cuisine = json_select_strdup(cook, "cuisine");
@@ -98,14 +107,15 @@ Or get your strings on the heap:
     /* Output: Enjoy your Fish and chips */
 ```
 
-Sometimes you just want to compare a string:
+And sometimes you just want to compare strings without
+copying them anywhere:
 
 ```c
     if (json_strcmp(json_select(cook, "cuisine"), "Swedish-Maori") == 0)
         raise(eyebrows);
 ```
 
-Extract BASE-64 content:
+Leaving food behind now, we can demonstrate BASE-64 binary content:
 
 ```c
     int buflen = json_as_bytes("\"SQNDUDQzNw==\"", buf, sizeof buf);
@@ -113,20 +123,41 @@ Extract BASE-64 content:
         perror("json_as_bytes");
 ```
 
-## Pointer convention
+And finally, an example of iterating over an array, <em>in-place</em>:
 
-Any `const char *` pointer into the JSON input text string
-represents
-the JSON value to which it points.
+```c
+    const char *iter;                                 /* Iterator state */
+    const char *elem;                                 /* Loop variable */
+
+    iter = json_as_array("[1, 2, null, []]");         /* Starts iterator */
+    while ((elem = json_array_next(&iter)))
+        printf("%d ", json_as_int(elem));
+
+    /* Output: 1 2 0 0 */
+
+    /* (No need to cleanup elem or iter.) */
+```
+
+A similar function exists for walking the key-values of an object.
+
+## Text pointers
+
+A `const char *` pointer into JSON text
+represents the JSON value to which it points.
+We call these "text pointers".
 
 For example, a pointer to the `[` character
 in `[10,2,3]`
 represents the whole array,
 while a pointer to the `1` represents the 10.
 
-The toplevel JSON value should be terminated with a NUL byte.
+Please ensure JSON text is terminated with a NUL byte
+if there is any risk of it being malformed or
+truncated.
 
 ### Converters
+
+Here are the functions that convert JSON text into C values.
 
 ```c
     double json_as_double(const char *json);
@@ -139,20 +170,27 @@ The toplevel JSON value should be terminated with a NUL byte.
     time_t json_as_time(const char *json);
 ```
 
-Converter functions translate JSON into C values.
-First they skip leading whitespace, then they convert
-the next complete JSON value into the indicated C type.
+They are all widely tolerant of different kinds of JSON input.
+Here is what they do for various inputs:
 
-When there is no clear conversion path
-from the JSON value to the desired C type
-(for example converting an array into an integer),
-then a "sensible" value (usually zero or the empty string) is used
-and `errno` is set to `EINVAL`.
+|JSON input|`json_as_`<br>`bool`|`json_as_`<br>`int`/`long`|`json_as_`<br>`double`|`json_as_`<br>`str`|`json_as_`<br>`array`|`json_as_`<br>`object`|`json_is_`<br>`null`|
+|--------------|----------|-------|-------|----------|----|----|---|
+|`false`       | false    |  0ⁱ   |NaNⁱ   |`"false"`ⁱ|[]ⁱ |{}ⁱ |no |
+|`true`        | true     |  0ⁱ   |NaNⁱ   |`"true"`ⁱ |[]ⁱ |{}ⁱ |no |
+|*number*      | ∉{0,NaN}ⁱ|strtolʳ|strtod |strcpyⁱ   |[]ⁱ |{}ⁱ |no |
+|`"`*string*`"`| ≠""ⁱ     |strtodⁱ|strtodⁱ|unescape  |[]ⁱ |{}ⁱ |no |
+|`[`*array*`]` | trueⁱ    |  0ⁱ   |NaNⁱ   |`""`ⁱ     |iter|{}ⁱ |no |
+|`{`*object*`}`| trueⁱ    |  0ⁱ   |NaNⁱ   |`""`ⁱ     |[]ⁱ |iter|no |
+|`null`        | falseⁱ   |  0ⁱ   |NaNⁱ   |`"null"`ⁱ |[]ⁱ |{}ⁱ |yes|
+|*empty/inval* | falseⁱ   |  0ⁱ   |NaNⁱ   |`""`ⁱ     |[]ⁱ |{}ⁱ |no |
 
-#### Understanding errors from converters
+* ʳ falls back to strtod on failure
+* ⁱ and sets `errno` to `EINVAL`
 
-This library is designed so that you don't need to check errors,
-but if you do, here are the details:
+The functions return "benign" values are intended to be safe for when
+you forget to check `errno`.
+
+Here is how to handle errors if you need to be careful:
 
 | If you call <br>this converter | and it <br>returned | and it set <br>`errno` to | then it means <br>that the |
 |------------------|-----------|--------|-------------------------------|
@@ -186,91 +224,81 @@ but if you do, here are the details:
 
 All converters will treat `NULL` JSON as though it were empty input.
 
-#### Conversion between types
-
-Given a "wrong" input type,
-a converter functions will set `errno` to `EINVAL` then
-return a (hopefully) unsurprising result.
-Here is a table of those results.
-It summarises what each function along the top will return
-when given the JSON input from the first column.
-
-|JSON input|`json_as_`<br>`bool`|`json_as_`<br>`int`/`long`|`json_as_`<br>`double`|`json_as_`<br>`str`|`json_as_`<br>`array`|`json_as_`<br>`object`|`json_is_`<br>`null`|
-|--------------|----------|-------|-------|----------|----|----|---|
-|`false`       | false    |  0ⁱ   |NaNⁱ   |`"false"`ⁱ|[]ⁱ |{}ⁱ |no |
-|`true`        | true     |  0ⁱ   |NaNⁱ   |`"true"`ⁱ |[]ⁱ |{}ⁱ |no |
-|*number*      | ∉{0,NaN}ⁱ|strtolʳ|strtod |strcpyⁱ   |[]ⁱ |{}ⁱ |no |
-|`"`*string*`"`| ≠""ⁱ     |strtodⁱ|strtodⁱ|unescaped |[]ⁱ |{}ⁱ |no |
-|`[`*array*`]` | trueⁱ    |  0ⁱ   |NaNⁱ   |`""`ⁱ     |iter|{}ⁱ |no |
-|`{`*object*`}`| trueⁱ    |  0ⁱ   |NaNⁱ   |`""`ⁱ     |[]ⁱ |iter|no |
-|`null`        | falseⁱ   |  0ⁱ   |NaNⁱ   |`"null"`ⁱ |[]ⁱ |{}ⁱ |yes|
-|*empty/inval* | falseⁱ   |  0ⁱ   |NaNⁱ   |`""`ⁱ     |[]ⁱ |{}ⁱ |no |
-
-* ʳ falls back to strtod on failure
-* ⁱ sets `errno` to `EINVAL`
+#### More type tricks
 
 `json_as_bool()` implements the same "falsey" rules as Javascript.
 
-Instead of checking for `EINVAL`,
-you can call `json_type()` to guess the type of a value
-(from its first non-whitespace character),
-and use that to choose the converter to call.
+Instead of looking for errors
+you can first call `json_type()` to classify the JSON type of the text
+and use that information to choose which converter to use.
 
-### String conversion
+```c
+    enum json_type json_type(const char *json);
+```
+
+### Safe strings and you
 
 ```c
     size_t json_as_str(const char *json, void *buf, size_t bufsz);
 ```
 
-This function stores a "safe" C string in the output buffer *buf*.
-A "safe" string consists only of UTF-8 characters permitted by
-[RFC 3629](https://tools.ietf.org/html/rfc3629)
-but excluding NUL (U+0) which is always present as the string terminator.
-
-`json_as_str()` will NUL-truncate the output at the first point where the input
-* has a malformed or overlong UTF-8 encoding (`EINVAL`), or
+`json_as_str()` stores a "safe" C string in the output buffer *buf*.
+By "safe", I mean a string truncated to protect you as per
+[RFC 3629](https://tools.ietf.org/html/rfc3629).
+Truncation happens when the input
+* contains U+0 (`EINVAL`), or
 * would require the storing of an unsafe UTF-8 codepoint in
   the output (`EINVAL`), or
-* would otherwise exceed the size of the output buffer (`ENOMEM`).
+* has a malformed or overlong UTF-8 encoding (`EINVAL`), or
+* would otherwise overflow the output buffer (`ENOMEM`).
 
 Examples of partial inputs where `json_as_str()` will terminate
 conversion are:
 `\u0000`, `\ud800` and `<C0 A0>` (an overlong SPC).
 
-#### Sanitized strings
+#### UTF-8B to the rescue
 
-If you need to work with unsafe or malformed JSON input, then use:
+If you need to work with potentially unsafe or malformed JSON input,
+then use:
 
 ```c
-    size_t json_as_unsafe_str(const char *json, void *buf, size_t bufsz);
+    size_t json_as_utf8b(const char *json, void *buf, size_t bufsz);
 ```
 
-This function does not reject any inputs,
-storing a "sanitized" UTF-8 string in *buf*.
-"Sanitized" is the same as "safe" but
-with the addition of unsafe codepoints { U+DC00 … U+DCFF }
-onto which are mapped all malformed and "difficult" input bytes.
-For example, the overlong `<C0 A0>` is santized to `<U+DCC0><U+DCA0>`
-and `\u0000` is sanitized to `<U+DC5C>u0000`.
+This function does not reject any inputs, because
+it stores a UTF-8B transformation in *buf*.
+UTF-8B uses the codepoints { U+DC00 … U+DCFF }
+to hold all the malformed and "difficult" input bytes.
 
-"Sanitized" strings are an extension of
+For example, the overlong input byte sequence `<C0><A0>` is
+stored as `<U+DCC0><U+DCA0>`,
+and the problematic JSON escape sequence `\u0000` as `<U+DC5C>u0000`.
+
+This transformation is exactly reversed when you send the string back with
+`json_from_utf8()`.
+
 [Kuhn's UTF-8b](http://hyperreal.org/~est/utf-8b/releases/utf-8b-20060413043934/kuhn-utf-8b.html)
-and are incompatible with RFC 3629 or
-[Unicode Scalar Values](http://www.unicode.org/glossary/#unicode_scalar_value).
-They have the useful property that the
-original input string can be recovered exactly
-(and `json_string_from_unsafe_str()` does precisely that).
-Byte-wise preservation of uninterpreted JSON input can
-also be performed using `json_span()` and `memcpy()`,
-which works even when the JSON input is not a quoted string.
+is strictly incompatible with RFC 3629 or
+[Unicode Scalar Values](http://www.unicode.org/glossary/#unicode_scalar_value)
+but it can be useful for interoperability
+when you need to send back exactly the garbage you got.
 
-#### Sizing the output string buffer
+#### Handling raw or binary data
 
-Providing an output buffer is the caller's responsibility.
+Another way to preserve uninterpreted JSON input is
+to use `json_span()` and `memcpy()`.
+This works for any kind of JSON input text.
+
+If you have binary data, consider using `json_as_bytes()`.
+
+#### Sizing the output buffer
+
+Providing a large-enough output buffer to string functions
+is the caller's responsibility.
 If the buffer provided is too small,
 then the stored string will be NUL-truncated at the UTF-8 boundary
 nearest the end of the buffer,
-and the ideal buffer size will returned.
+although the ideal buffer size will returned.
 
 To dynamically allocate the buffer,
 the caller can specify a buffer size of 0,
@@ -282,7 +310,7 @@ by these convenience functions:
 
 ```c
     char * json_as_strdup(const char *json);
-    char * json_as_unsafe_strdup(const char *json);
+    char * json_as_utf8b_strdup(const char *json);
 ```
 
 ### Decoding BASE-64 to bytes
@@ -296,32 +324,47 @@ It is common to receive binary data as BASE-64 encoded strings, per
 
 ## Generating JSON
 
+Use `sprintf()` to form most of your JSON output.
+It works amazingly well.
+
+To generate JSON string text, use the following:
+
 ```c
-    size_t json_string_from_str(const char *src,
-                                char *dst, size_t dstsz);
-    size_t json_string_from_strn(const char *src, int srclen,
-                                char *dst, size_t dstsz);
-    size_t json_string_from_unsafe_str(const char *src,
-                                char *dst, size_t dstsz);
-    size_t json_string_from_unsafe_strn(const char *src, int srclen,
-                                char *dst, size_t dstsz);
+    size_t json_from_str(const char *src,
+                        char *dst, size_t dstsz);
+    size_t json_from_strn(const char *src, int srclen,
+                        char *dst, size_t dstsz);
+    size_t json_from_utf8b(const char *src,
+                        char *dst, size_t dstsz);
+    size_t json_from_utf8bn(const char *src, int srclen,
+                        char *dst, size_t dstsz);
     int json_from_bytes(const void *src, size_t srcsz,
-                                char *dst, size_t dstsz);
+                        char *dst, size_t dstsz);
+    int json_from_time(time_t t, char *dst, size_t dstsz);
+```
+
+Safety note:
+Generated JSON will not contain the literal sequences `</` nor `]]>`.
+Such sequences are replaced by `<\/` and `]]\u003e`, respectively, as a
+guard against their abuse in HTML documents.
+
+### Generating booleans and null
+
+These are provided for consistency and to save space.
+
+```c
+    const char *json_from_bool(int b);
 
     extern const char json_true[];   /* "true" */
     extern const char json_false[];  /* "false" */
     extern const char json_null[];   /* "null" */
 ```
 
-Generated, quoted JSON strings will not contain the sequences `</` nor `]]>`.
-These sequences are replaced by `<\/` and `]]\u003e`, respectively, as a
-guard against their use in HTML documents.
-
 ## More
 
 See [redjson.h](redjson.h) for details.
 
-Structure iterators
+Structure enumeration
 
 ```c
     const char *json_as_array(const char *json);
@@ -330,7 +373,7 @@ Structure iterators
     const char *json_object_next(const char **index_p, const char **key_ret);
 ```
 
-Structure navigation
+Structure traversal
 
 ```c
     const char *json_select(const char *json, const char *path, ...);
@@ -369,6 +412,12 @@ with the following extensions:
   Words may contain single quotes, but cannot begin with one.
   This means the input `{foo:won't}` will be treated as
   `{"foo":"won't"}`.
+
+This parser encourages the recommendations from
+[RFC 7493](https://tools.ietf.org/html/rfc7493):
+
+* 4.3 use RFC 3339 for dates
+* 4.4 use BASE-64 for binary data
 
 ### Limitations
 
