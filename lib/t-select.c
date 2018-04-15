@@ -4,6 +4,9 @@
 #include "redjson.h"
 #include "t-assert.h"
 
+/* These tests abuse the format strings in ways that GCC
+ * can detect and it likes to complain about */
+#pragma GCC diagnostic ignored "-Wformat-security"
 int
 main()
 {
