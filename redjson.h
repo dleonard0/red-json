@@ -500,6 +500,52 @@ char *json_as_unsafe_strdup(const __JSON char *json)
 int json_as_bytes(const __JSON char *json, void *buf, size_t bufsz);
 
 /**
+ * Decode an RFC 3339 string as a time_t.
+ *
+ * @see RFC 3339, ISO 8601.
+ *
+ * On error, this function returns -1 and sets #errno to a non-zero
+ * value.
+ *
+ * Leap seconds do not have a representation in #time_t so they are
+ * decayed to the closest second. This can be detected if necessary
+ * by clearing #errno beforehand, then checking it for EOVERFLOW
+ * after the call returns. For many purposes the decay can be ignored,
+ * especially if you know that the input time originated from a posix
+ * system.
+ *
+ * @param json  (optional) input JSON text
+ *
+ * @returns the unix time representing the string.
+ * @retval -1 [EINVAL] The value was not decodable as ISO 8601.
+ * @retval -1 [errno=0] The value was "1969-12-31T23:59:59Z".
+ * @retval [EOVERFLOW] The value was a leap second, and
+ *           was decayed to the prior non-leap second.
+ */
+time_t json_as_time(const __JSON char *json);
+
+/**
+ * Encode a time in RFC 3339 (ISO 8601) format.
+ *
+ * The output string will be in uppercase and use Z (UTC) offset.
+ * For example: "1985-04-12T23:20:50Z"
+ *
+ * @param t     the number of seconds since the Unix epoch
+ * @param dst   output buffer for holding double-quoted JSON string.
+ *              This will be NUL-terminated on success.
+ * @param dstsz size of the output buffer @ dst.
+ *              This must be at least @c JSON_FROM_TIME_SZ.
+ *
+ * @returns the number of non-NUL bytes that were stored in @a dst
+ * @retval -1 [ENOMEM] The @a dstsz is too small.
+ * @retval -1 [EOVERFLOW] The time cannot be represented.
+ */
+size_t json_from_time(time_t t, __JSON char *dst, size_t dstsz);
+
+/* Minimum buffer size required by json_from_time(). */
+#define JSON_FROM_TIME_SZ (sizeof "\"1985-04-12T23:20:50Z\"")
+
+/**
  * Encodes binary data into a BASE-64, quoted JSON string.
  *
  * Use #JSON_FROM_BYTES_DSTSZ() to determine the dst buffer size required.

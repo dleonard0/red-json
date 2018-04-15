@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <math.h>		/* NAN, isnan() */
 
 #define cYELLOW  "\033[33m"
@@ -153,6 +154,25 @@ _assert_chareq(_assert_params, char a, char b)
 	    fprintf(stderr, "'\n\t%s => '", b_arg);
 	    fputc_esc(b, stderr);
 	    fprintf(stderr, "'\n");
+	    abort();
+	}
+}
+
+/* A macro to assert two time_t have equal value */
+#define assert_timeeq(a,b) _assert_timeeq(_assert_args(#a, #b), a, b)
+__static_inline void
+_assert_timeeq(_assert_params, time_t a, time_t b)
+{
+	if (a != b) {
+	    fprintf(stderr,
+	       "%s:%d: assertion failure assert_timeeq(%s, %s)\n"
+	       "\t%s => %jd\n\t%s => %jd\n\t(difference: %jd)\n",
+		file, line, a_arg, b_arg,
+		a_arg, (intmax_t)a,  b_arg, (intmax_t)b,
+		(intmax_t)(a - b));
+	    if (a == -1 || b == -1)
+	        fprintf(stderr, "\terrno = %d (%s)\n",
+		    errno, strerror(errno));
 	    abort();
 	}
 }

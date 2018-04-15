@@ -136,6 +136,7 @@ The toplevel JSON value should be terminated with a NUL byte.
     int    json_is_null(const char *json);
     size_t json_as_str(const char *json, void *buf, size_t bufsz);
     char * json_as_strdup(const char *json);
+    time_t json_as_time(const char *json);
 ```
 
 Converter functions translate JSON into C values.
@@ -175,6 +176,7 @@ but if you do, here are the details:
 |`json_as_strdup()`|`NULL`     |`ENOMEM`|call to `malloc()` failed	|
 |`json_as_bytes()` |-1         |`EINVAL`|input is not a BASE-64 string	|
 |`json_as_bytes()` |-1         |`ENOMEM`|output buffer is too small	|
+|`json_as_time()`  |-1         |`EINVAL`|input is not an RFC3339 string |
 |`json_span()`     |0          |`EINVAL`|input is not a JSON value	|
 |`json_span()`     |0          |`ENOMEM`|input is too deeply nested	|
 
@@ -333,6 +335,13 @@ Structure navigation
 ```c
     const char *json_select(const char *json, const char *path, ...);
     const char *json_selectv(const char *json, const char *path, va_list ap);
+```
+
+Date and time ([RFC 3339](https://tools.ietf.org/html/rfc3339))
+
+```c
+    time_t json_as_time(const char *json);
+    size_t json_from_time(time_t t, char *dst, size_t dstsz);
 ```
 
 Miscellaneous
