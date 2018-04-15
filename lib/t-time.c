@@ -136,4 +136,6 @@ main()
 	/* Detect a too-small buffer */
 	assert_inteq_errno(json_from_time(0, buf, 0), -1, ENOMEM);
 	assert_inteq_errno(json_from_time(0, buf, sizeof JSON_FROM_TIME_SZ-1), -1, ENOMEM);
+
+	return 0;
 }
